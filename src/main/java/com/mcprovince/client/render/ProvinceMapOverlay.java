@@ -20,7 +20,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 
 /**
  * 世界地图上的行政区划浮层：平时只叠一层矢量色块，按 R 之后多出一个编辑面板。
@@ -74,7 +74,7 @@ public final class ProvinceMapOverlay {
 
     // ————————————————— 绘制 —————————————————
 
-    public static void render(GuiGraphicsExtractor graphics, Font font, int guiWidth, int guiHeight,
+    public static void render(GuiGraphics graphics, Font font, int guiWidth, int guiHeight,
             double mouseX, double mouseY, double cameraX, double cameraZ, double scale, double screenScale,
             double windowWidth, double windowHeight) {
         ProvinceSettings settings = ProvinceSettings.get();
@@ -112,7 +112,7 @@ public final class ProvinceMapOverlay {
      * 「显示区划名称」的时候才谈得上放不下——名称压根不画的时候，给每块地都挂个序号
      * 反而是添乱。</p>
      */
-    private static void drawSerialMarks(GuiGraphicsExtractor graphics, Font font, ProvinceStore store,
+    private static void drawSerialMarks(GuiGraphics graphics, Font font, ProvinceStore store,
             ProvinceSettings settings, XaeroMapProjection projection, int guiWidth, int guiHeight) {
         if (!settings.serialMarks || !settings.showNames) {
             return;
@@ -162,7 +162,7 @@ public final class ProvinceMapOverlay {
             // 不套框、也不垫影子：图上别的地名长什么样，序号就长什么样。
             int boxH = font.lineHeight + 2;
             int boxY = screenY - boxH / 2;
-            graphics.centeredText(font, mark, screenX, boxY + 2, COL_TEXT);
+            graphics.drawCenteredString(font, mark, screenX, boxY + 2, COL_TEXT);
         }
         drawSerialLegend(graphics, font, legend, settings, guiWidth, guiHeight);
     }
@@ -182,7 +182,7 @@ public final class ProvinceMapOverlay {
     }
 
     /** 屏幕角落那张「① 是哪块地」的对照表；位置由设置里的角落决定。 */
-    private static void drawSerialLegend(GuiGraphicsExtractor graphics, Font font, List<String> lines,
+    private static void drawSerialLegend(GuiGraphics graphics, Font font, List<String> lines,
             ProvinceSettings settings, int guiWidth, int guiHeight) {
         int textW = 0;
         for (String line : lines) {
@@ -198,13 +198,13 @@ public final class ProvinceMapOverlay {
             y = panelBottom() + 4;
         }
         graphics.fill(x, y, x + boxW, y + boxH, COL_LEGEND_BG);
-        graphics.outline(x, y, boxW, boxH, COL_EDGE);
+        graphics.renderOutline(x, y, boxW, boxH, COL_EDGE);
         for (int i = 0; i < lines.size(); i++) {
-            graphics.text(font, lines.get(i), x + LEGEND_PAD, y + LEGEND_PAD + i * LEGEND_LINE_H, COL_TEXT);
+            graphics.drawString(font, lines.get(i), x + LEGEND_PAD, y + LEGEND_PAD + i * LEGEND_LINE_H, COL_TEXT);
         }
     }
 
-    private static void drawEditPreview(GuiGraphicsExtractor graphics, XaeroMapProjection projection,
+    private static void drawEditPreview(GuiGraphics graphics, XaeroMapProjection projection,
             double clipW, double clipH) {
         EditSession session = ProvinceEditor.session();
         if (session == null) {
@@ -240,13 +240,13 @@ public final class ProvinceMapOverlay {
         }
     }
 
-    private static void drawPanel(GuiGraphicsExtractor graphics, Font font, int mouseX, int mouseY) {
+    private static void drawPanel(GuiGraphics graphics, Font font, int mouseX, int mouseY) {
         List<Widget> widgets = buildWidgets();
         int statusTop = statusTop(widgets);
         int panelBottom = statusTop + STATUS_LINES * 10 + PAD;
 
         graphics.fill(PANEL_X, PANEL_Y, PANEL_X + PANEL_W, panelBottom, COL_PANEL);
-        graphics.outline(PANEL_X, PANEL_Y, PANEL_W, panelBottom - PANEL_Y, COL_EDGE);
+        graphics.renderOutline(PANEL_X, PANEL_Y, PANEL_W, panelBottom - PANEL_Y, COL_EDGE);
 
         for (Widget widget : widgets) {
             drawWidget(graphics, font, widget, mouseX, mouseY);
@@ -254,12 +254,12 @@ public final class ProvinceMapOverlay {
 
         int textY = statusTop;
         for (String line : wrap(ProvinceEditor.status(), font, PANEL_W - 2 * PAD, STATUS_LINES)) {
-            graphics.text(font, line, PANEL_X + PAD, textY, COL_TEXT_DIM);
+            graphics.drawString(font, line, PANEL_X + PAD, textY, COL_TEXT_DIM);
             textY += 10;
         }
     }
 
-    private static void drawWidget(GuiGraphicsExtractor graphics, Font font, Widget widget, int mouseX, int mouseY) {
+    private static void drawWidget(GuiGraphics graphics, Font font, Widget widget, int mouseX, int mouseY) {
         boolean hover = widget.action != null && widget.enabled
                 && mouseX >= widget.x && mouseX < widget.x + widget.w
                 && mouseY >= widget.y && mouseY < widget.y + widget.h;
@@ -276,7 +276,7 @@ public final class ProvinceMapOverlay {
             background = COL_BTN;
         }
         graphics.fill(widget.x, widget.y, widget.x + widget.w, widget.y + widget.h, background);
-        graphics.outline(widget.x, widget.y, widget.w, widget.h,
+        graphics.renderOutline(widget.x, widget.y, widget.w, widget.h,
                 selected ? 0xFF7FD4FF : COL_EDGE);
 
         String label = widget.label.get();
@@ -284,7 +284,7 @@ public final class ProvinceMapOverlay {
             return;
         }
         int color = !widget.enabled ? COL_TEXT_OFF : COL_TEXT;
-        graphics.centeredText(font, label, widget.x + widget.w / 2, widget.y + (widget.h - 8) / 2, color);
+        graphics.drawCenteredString(font, label, widget.x + widget.w / 2, widget.y + (widget.h - 8) / 2, color);
     }
 
     // ————————————————— 控件布局 —————————————————
@@ -362,7 +362,8 @@ public final class ProvinceMapOverlay {
     }
 
     private static void openSettings() {
-        ProvinceSettingsScreen.open(Minecraft.getInstance().gui.screen());
+        // 1.21.11 线没有 26.x 的 Minecraft.gui.screen()，当前界面就是 Minecraft.screen 字段。
+        ProvinceSettingsScreen.open(Minecraft.getInstance().screen);
     }
 
     /** 每帧推一下导出请求；跑完的那一次顺手把结果写进编辑面板的状态栏。 */
@@ -374,7 +375,7 @@ public final class ProvinceMapOverlay {
     }
 
     /** 屏幕底部居中挂一条提示：正在导出 / 导出成功 / 导出失败。 */
-    private static void drawExportNotice(GuiGraphicsExtractor graphics, Font font, int guiWidth, int guiHeight) {
+    private static void drawExportNotice(GuiGraphics graphics, Font font, int guiWidth, int guiHeight) {
         String text = MapExporter.notice();
         if (text.isEmpty()) {
             return;
@@ -395,8 +396,8 @@ public final class ProvinceMapOverlay {
             default -> 0xFF7FD4FF;
         };
         graphics.fill(x, y, x + width, y + height, background);
-        graphics.outline(x, y, width, height, edge);
-        graphics.centeredText(font, text, guiWidth / 2, y + 4, COL_TEXT);
+        graphics.renderOutline(x, y, width, height, edge);
+        graphics.drawCenteredString(font, text, guiWidth / 2, y + 4, COL_TEXT);
     }
 
     // ————————————————— 输入 —————————————————

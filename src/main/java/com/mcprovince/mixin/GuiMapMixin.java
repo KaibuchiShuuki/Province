@@ -7,7 +7,7 @@ import com.mcprovince.client.ProvinceSettings;
 import com.mcprovince.client.render.ProvinceMapOverlay;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import org.joml.Matrix3x2f;
@@ -43,8 +43,8 @@ public abstract class GuiMapMixin {
     @Shadow
     private double screenScale;
 
-    @Inject(method = "extractRenderState", at = @At("TAIL"))
-    private void mcprovince$renderOverlay(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
+    @Inject(method = "render", at = @At("TAIL"))
+    private void mcprovince$renderOverlay(GuiGraphics graphics, int mouseX, int mouseY,
             float partialTick, CallbackInfo ci) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft == null) {
