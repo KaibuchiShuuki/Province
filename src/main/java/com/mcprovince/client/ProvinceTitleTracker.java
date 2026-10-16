@@ -42,15 +42,16 @@ public final class ProvinceTitleTracker {
         if (label.isEmpty()) {
             return;
         }
-        minecraft.gui.hud.setTimes(settings.titleFadeIn, settings.titleStay, settings.titleFadeOut);
-        minecraft.gui.hud.setTitle(Component.literal(label));
+        // 1.21.11 线的标题 API 直接挂在 Gui 上（26.x 才拆出 Gui.hud 这一层）。
+        minecraft.gui.setTimes(settings.titleFadeIn, settings.titleStay, settings.titleFadeOut);
+        minecraft.gui.setTitle(Component.literal(label));
         // 副标题＝这一块的父级名，样式跟主标题一套，只是原版把它画成灰色。
         Province parent = province.parentId() == Province.NO_PARENT ? null : store.byId(province.parentId());
         String parentLabel = parent == null ? "" : parent.displayName(settings.titleFormat);
         if (settings.titleSubtitle && !parentLabel.isEmpty()) {
-            minecraft.gui.hud.setSubtitle(Component.literal(parentLabel).withStyle(ChatFormatting.GRAY));
+            minecraft.gui.setSubtitle(Component.literal(parentLabel).withStyle(ChatFormatting.GRAY));
         } else {
-            minecraft.gui.hud.setSubtitle(Component.empty());
+            minecraft.gui.setSubtitle(Component.empty());
         }
     }
 }

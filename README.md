@@ -8,16 +8,16 @@
 
 | 依赖 | 版本 |
 | --- | --- |
-| Minecraft | 26.2 |
+| Minecraft | 1.21.11 |
 | Fabric Loader | 0.19.3 以上 |
-| Java | 25 |
-| Fabric API | 26.2 线（0.157.0+26.2 上测过） |
+| Java | 21 |
+| Fabric API | 1.21.11 线（0.141.6+1.21.11 上测过） |
 | Xaero's World Map | 1.39.0 以上（世界地图叠层和导出地图要用） |
-| Xaero's Minimap | 26.x 线（小地图叠层要用） |
+| Xaero's Minimap | 1.21.11 线（26.6.0 上测过） |
 
 没装 Xaero 也能进游戏，只是地图上看不到区划，编辑模式也打不开。
 
-把 `Province-0.2.1+26.2.jar` 丢进 `.minecraft/mods`。文件名里 `+` 后面是**这个 jar 适配的 Minecraft 版本**（Fabric 模组的通用命名惯例）：以后出了 26.3 的构建，下载页上会同时摆着 `Province-0.2.1+26.2.jar` 和 `Province-0.2.1+26.3.jar`，模组自己的版本号可能一样，挑跟自己的游戏版本对得上的那一个装。装错了会在启动时报错退出，不会静默跑成奇怪的行为。
+把 `Province-0.2.1+1.21.11.jar` 丢进 `.minecraft/mods`。文件名里 `+` 后面是**这个 jar 适配的 Minecraft 版本**（Fabric 模组的通用命名惯例）：同一个模组版本会为每条 MC 线各出一个 jar（26.2、1.21.11、1.21.1、1.20.1），模组自己的版本号一样，挑跟自己的游戏版本对得上的那一个装。装错了会在启动时报错退出，不会静默跑成奇怪的行为。
 
 ## 怎么用
 
@@ -256,10 +256,10 @@ translateY = pc * offx * zoom + ps * offz * zoom
 
 ### 改代码时的几个坑
 
-这个项目跟的是 Minecraft 26.2 + Fabric，有些 API 是最近才改过名或者挪走的，踩过一次记在这里：
+这个项目跟的是 Minecraft 1.21.11 + Fabric（源码从 26.2 那条线移植过来，改法与差异都记在这里）。有些 API 是最近才改过名或者挪走的，踩过一次记在这里：
 
-- **按键分类的 lang 键是单数**：`key.category.mc-province.main`。写成复数 `key.categories.…` 是 1.21 以前 `KeyMapping` 构造函数的写法，26.2 只认单数，写错了界面上会直接显示原始键名。
-- **`Screen` 上没有 `hasShiftDown()` 了**。要判断修饰键就直接问 GLFW：`InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_LSHIFT)`，左右 Shift 各判一次。
+- **按键分类的 lang 键是单数**：`key.category.mc-province.main`。写成复数 `key.categories.…` 是更早的 `KeyMapping` 构造函数的写法，1.21.11 上的 `KeyMapping.Category` 只认单数，写错了界面上会直接显示原始键名。
+- **`Screen.hasShiftDown()` 在 1.21.11 上还在**，但这里沿用了直接问 GLFW 的写法：`InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_LSHIFT)`，左右 Shift 各判一次。26.2 线已经没有这个方法，两边保持同一份代码更省心。
 - **`ResourceKey` 取标识用 `identifier()`**，不再是 `location()`。
 - **`EditSession.onRelease()` 是无参的**，早期版本带一个坐标参数。
 - **`VectorShape` 自带 `contains(double, double)`**，判断点是否落在形状里不用先取 `Area`。
@@ -294,7 +294,7 @@ gradlew.bat build
 ./gradlew build
 ```
 
-产物是 `build/libs/Province-0.2.1+26.2.jar`。
+产物是 `build/libs/Province-0.2.1+1.21.11.jar`。
 
 版本号与 MC 版本都在 `gradle.properties` 里：`mod_version` 是模组自己的版本，`minecraft_version` 是适配的游戏版本，`build.gradle` 只负责把它们拼成 `Province-<mod_version>+<minecraft_version>.jar`。要出别的游戏版本的构建，改 `minecraft_version`（以及 `fabric_api_version` 那条对应的线）重编即可，产物名会自动跟着变。
 

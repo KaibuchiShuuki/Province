@@ -5,7 +5,7 @@ import com.mcprovince.core.AdminLevels;
 import com.mcprovince.core.Province;
 import java.util.List;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -84,7 +84,8 @@ public class ProvinceNameScreen extends Screen {
 
     public static void open() {
         Minecraft minecraft = Minecraft.getInstance();
-        Screen parent = minecraft.gui == null ? null : minecraft.gui.screen();
+        // 1.21.11 线没有 26.x 的 Minecraft.gui.screen()，当前界面就是 Minecraft.screen 字段。
+        Screen parent = minecraft.screen;
         minecraft.setScreenAndShow(new ProvinceNameScreen(parent, Province.NO_PARENT));
     }
 
@@ -181,19 +182,19 @@ public class ProvinceNameScreen extends Screen {
      *
      * @return 这一格正在滚动就返回它的键，否则 {@code null}
      */
-    private String drawCellLabel(GuiGraphicsExtractor graphics, AdminLevels.Name name, int cx, int cy,
+    private String drawCellLabel(GuiGraphics graphics, AdminLevels.Name name, int cx, int cy,
             boolean hover) {
         String label = levelLabel(name);
         int textW = this.font.width(label);
         int baseline = cy + 5;
         if (textW <= this.cellW - 6) {
-            graphics.centeredText(this.font, label, cx + this.cellW / 2, baseline, COL_TEXT);
+            graphics.drawCenteredString(this.font, label, cx + this.cellW / 2, baseline, COL_TEXT);
             return null;
         }
         if (!hover) {
             // 平时就露开头那一段，剩下的裁在格子外——想看全名把鼠标停上去。
             graphics.enableScissor(cx + 2, cy + 1, cx + this.cellW - 2, cy + CELL_H - 1);
-            graphics.text(this.font, label, cx + 3, baseline, COL_TEXT);
+            graphics.drawString(this.font, label, cx + 3, baseline, COL_TEXT);
             graphics.disableScissor();
             return null;
         }
@@ -207,9 +208,9 @@ public class ProvinceNameScreen extends Screen {
         int offset = (int) Math.round(travelled % span);
         int x = cx + 3 - offset;
         graphics.enableScissor(cx + 2, cy + 1, cx + this.cellW - 2, cy + CELL_H - 1);
-        graphics.text(this.font, label, x, baseline, COL_TEXT);
+        graphics.drawString(this.font, label, x, baseline, COL_TEXT);
         // 后一份紧跟在前一份后面：滚出去的同时下一份从右边接上，看着是连着的。
-        graphics.text(this.font, label, x + (int) Math.round(span), baseline, COL_TEXT);
+        graphics.drawString(this.font, label, x + (int) Math.round(span), baseline, COL_TEXT);
         graphics.disableScissor();
         return name.key();
     }
@@ -238,13 +239,13 @@ public class ProvinceNameScreen extends Screen {
     }
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, 0xB0000000);
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        super.render(graphics, mouseX, mouseY, partialTick);
 
         List<AdminLevels.Name> all = levels();
         int total = all.size();
@@ -258,17 +259,17 @@ public class ProvinceNameScreen extends Screen {
         int panelBottom = buttonY + 22;
 
         graphics.fill(this.gridX - 8, panelTop, this.gridX + this.gridW + 8, panelBottom, COL_PANEL);
-        graphics.outline(this.gridX - 8, panelTop, this.gridW + 16, panelBottom - panelTop, COL_EDGE);
+        graphics.renderOutline(this.gridX - 8, panelTop, this.gridW + 16, panelBottom - panelTop, COL_EDGE);
 
-        graphics.centeredText(this.font, title(), this.width / 2, 14, COL_TEXT);
-        graphics.text(this.font, "中文名", (this.width - Math.min(240, this.width - 40)) / 2 - 52, 41, COL_TEXT);
-        graphics.text(this.font, "英文名", (this.width - Math.min(240, this.width - 40)) / 2 - 52, 65, COL_TEXT);
+        graphics.drawCenteredString(this.font, title(), this.width / 2, 14, COL_TEXT);
+        graphics.drawString(this.font, "中文名", (this.width - Math.min(240, this.width - 40)) / 2 - 52, 41, COL_TEXT);
+        graphics.drawString(this.font, "英文名", (this.width - Math.min(240, this.width - 40)) / 2 - 52, 65, COL_TEXT);
         Ui.boxValue(graphics, this.font, this.zhBox);
         Ui.boxValue(graphics, this.font, this.enBox);
 
         AdminLevels.Name current = AdminLevels.byKey(this.levelKey);
         String currentLabel = AdminLevels.labelOf(current);
-        graphics.centeredText(this.font, "级别：" + currentLabel, this.width / 2, this.gridY - 14, COL_TEXT);
+        graphics.drawCenteredString(this.font, "级别：" + currentLabel, this.width / 2, this.gridY - 14, COL_TEXT);
 
         String rolling = null;
         for (int index = from; index < to; index++) {
@@ -281,7 +282,7 @@ public class ProvinceNameScreen extends Screen {
             graphics.fill(cx, cy, cx + this.cellW, cy + CELL_H,
                     selected ? Ui.BTN_SELECTED : hover ? Ui.BTN_HOVER : Ui.BTN);
             boolean user = AdminLevels.isUser(name.key());
-            graphics.outline(cx, cy, this.cellW, CELL_H,
+            graphics.renderOutline(cx, cy, this.cellW, CELL_H,
                     selected ? 0xFF7FD4FF : user ? COL_USER_EDGE : COL_EDGE);
             String marquee = drawCellLabel(graphics, name, cx, cy, hover);
             if (marquee != null) {
@@ -298,15 +299,15 @@ public class ProvinceNameScreen extends Screen {
         Ui.button(graphics, this.font, mouseX, mouseY, langX(groupX), footerY, TOOL_W, TOOL_H,
                 this.showEn ? "EN" : "中", false);
         Ui.button(graphics, this.font, mouseX, mouseY, groupX, footerY, pageW, TOOL_H, "◀", false);
-        graphics.centeredText(this.font, "第 " + (this.page + 1) + " / " + pageCount() + " 页",
+        graphics.drawCenteredString(this.font, "第 " + (this.page + 1) + " / " + pageCount() + " 页",
                 groupX + pageW + labelW / 2 + 4, footerY + 4, COL_TEXT);
         Ui.button(graphics, this.font, mouseX, mouseY, groupX + pageW + labelW + 8, footerY, pageW, TOOL_H, "▶", false);
 
         Ui.button(graphics, this.font, mouseX, mouseY, addX(), footerY, TOOL_W, TOOL_H, "+", false);
         boolean delHot = canDelete() && Ui.inside(mouseX, mouseY, delX(), footerY, TOOL_W, TOOL_H);
         graphics.fill(delX(), footerY, delX() + TOOL_W, footerY + TOOL_H, delHot ? Ui.BTN_HOVER : Ui.BTN);
-        graphics.outline(delX(), footerY, TOOL_W, TOOL_H, canDelete() ? COL_USER_EDGE : COL_EDGE);
-        graphics.centeredText(this.font, "-", delX() + TOOL_W / 2, footerY + 5, COL_TEXT);
+        graphics.renderOutline(delX(), footerY, TOOL_W, TOOL_H, canDelete() ? COL_USER_EDGE : COL_EDGE);
+        graphics.drawCenteredString(this.font, "-", delX() + TOOL_W / 2, footerY + 5, COL_TEXT);
 
         int step = colorStep();
         int cell = colorCell();
@@ -316,7 +317,7 @@ public class ProvinceNameScreen extends Screen {
             boolean selected = PALETTE[i] == this.color;
             boolean hover = Ui.inside(mouseX, mouseY, cx, colorY, cell, cell);
             graphics.fill(cx, colorY, cx + cell, colorY + cell, 0xFF000000 | PALETTE[i]);
-            graphics.outline(cx, colorY, cell, cell,
+            graphics.renderOutline(cx, colorY, cell, cell,
                     selected ? 0xFFFFFFFF : hover ? 0xFFAAAAAA : COL_EDGE);
         }
 
@@ -327,7 +328,7 @@ public class ProvinceNameScreen extends Screen {
         String footNote = !this.hint.isEmpty() ? this.hint
                 : "页脚的 + 加一条自己的、- 删掉自己加的（金色边框那些）；「"
                         + AdminLevels.NONE_LABEL + "」表示区划名后面不加任何称号。";
-        graphics.centeredText(this.font, footNote, this.width / 2, buttonY + 26,
+        graphics.drawCenteredString(this.font, footNote, this.width / 2, buttonY + 26,
                 this.hint.isEmpty() ? COL_TEXT : 0xFFFF8080);
     }
 

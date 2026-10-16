@@ -1,7 +1,7 @@
 package com.mcprovince.client.gui;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 
 /**
@@ -29,12 +29,12 @@ public final class Ui {
     }
 
     /** 画一个按钮：底色随 hover / selected 变，文字垂直居中。 */
-    public static void button(GuiGraphicsExtractor graphics, Font font, int mouseX, int mouseY,
+    public static void button(GuiGraphics graphics, Font font, int mouseX, int mouseY,
             int x, int y, int w, int h, String label, boolean selected) {
         boolean hover = inside(mouseX, mouseY, x, y, w, h);
         graphics.fill(x, y, x + w, y + h, selected ? BTN_SELECTED : hover ? BTN_HOVER : BTN);
-        graphics.outline(x, y, w, h, selected ? EDGE_SELECTED : BTN);
-        graphics.centeredText(font, label, x + w / 2, y + (h - 8) / 2, TEXT);
+        graphics.renderOutline(x, y, w, h, selected ? EDGE_SELECTED : BTN);
+        graphics.drawCenteredString(font, label, x + w / 2, y + (h - 8) / 2, TEXT);
     }
 
     /**
@@ -50,11 +50,11 @@ public final class Ui {
     }
 
     /** 用纯白画输入框当前的值，超宽的部分按原版的规则截断。 */
-    public static void boxValue(GuiGraphicsExtractor graphics, Font font, EditBox box) {
+    public static void boxValue(GuiGraphics graphics, Font font, EditBox box) {
         if (box == null || box.getValue().isEmpty()) {
             return;
         }
-        graphics.text(font, font.plainSubstrByWidth(box.getValue(), box.getInnerWidth()),
+        graphics.drawString(font, font.plainSubstrByWidth(box.getValue(), box.getInnerWidth()),
                 box.getX() + 4, box.getY() + (box.getHeight() - 8) / 2, TEXT);
     }
 }

@@ -7,7 +7,7 @@ import static com.mcprovince.client.ProvinceSettings.clamp;
 import com.mcprovince.core.NameFormat;
 import com.mcprovince.core.Province;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -336,12 +336,12 @@ public class ProvinceSettingsScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         layout();
         graphics.fill(left - 2, top - 2, left + panelW + 2, top + panelH + 2, BG);
-        graphics.outline(left - 2, top - 2, panelW + 4, panelH + 4, 0xFF3A4756);
-        graphics.centeredText(this.font, this.title.getString(), left + panelW / 2, top + 4, TEXT_HEAD);
-        graphics.text(this.font, "自动保存于 config/mc-province/settings.nbt",
+        graphics.renderOutline(left - 2, top - 2, panelW + 4, panelH + 4, 0xFF3A4756);
+        graphics.drawCenteredString(this.font, this.title.getString(), left + panelW / 2, top + 4, TEXT_HEAD);
+        graphics.drawString(this.font, "自动保存于 config/mc-province/settings.nbt",
                 left + 6, top + 4 + this.font.lineHeight, TEXT_DIM);
 
         graphics.enableScissor(left + 2, this.view.top(), left + panelW - 2,
@@ -360,14 +360,14 @@ public class ProvinceSettingsScreen extends Screen {
                 graphics.fill(left + 4, cellTop, left + panelW - 4, cellBottom, (i % 2 == 0) ? ROW_BG : ROW_ALT);
             }
             if (kind == Kind.HEAD) {
-                graphics.text(this.font, fit(row.label(), panelW - PAD * 2 - 8), left + 8, textY, TEXT_HEAD);
+                graphics.drawString(this.font, fit(row.label(), panelW - PAD * 2 - 8), left + 8, textY, TEXT_HEAD);
                 continue;
             }
             if (kind == Kind.NOTE) {
-                graphics.text(this.font, fit(row.label(), panelW - PAD * 2 - 12), left + 12, textY, TEXT_DIM);
+                graphics.drawString(this.font, fit(row.label(), panelW - PAD * 2 - 12), left + 12, textY, TEXT_DIM);
                 continue;
             }
-            graphics.text(this.font, fit(row.label(), decX() - left - 16), left + 8, textY, TEXT);
+            graphics.drawString(this.font, fit(row.label(), decX() - left - 16), left + 8, textY, TEXT);
 
             if (kind == Kind.SLIDER && row.slider() != null) {
                 Slider slider = row.slider();
@@ -380,7 +380,7 @@ public class ProvinceSettingsScreen extends Screen {
                 graphics.fill(sliderX0(), trackY - 2, sliderX1(), trackY + 3, BAR_TRACK);
                 int thumbX = sliderThumbX(value, slider.min(), slider.max());
                 graphics.fill(thumbX - 2, cellTop + 2, thumbX + 3, cellBottom - 2, hot ? BAR_THUMB_HOT : BAR_THUMB);
-                graphics.centeredText(this.font, row.value(), rowRight() - 28, textY, TEXT);
+                graphics.drawCenteredString(this.font, row.value(), rowRight() - 28, textY, TEXT);
                 continue;
             }
 
@@ -390,10 +390,10 @@ public class ProvinceSettingsScreen extends Screen {
             boolean incHover = mouseX >= incX && mouseX < incX + 22 && mouseY >= cellTop && mouseY < cellBottom;
             graphics.fill(decX, cellTop, decX + 22, cellBottom, decHover ? BTN_HOVER : BTN);
             graphics.fill(incX, cellTop, incX + 22, cellBottom, incHover ? BTN_HOVER : BTN);
-            graphics.centeredText(this.font, "-", decX + 11, textY, TEXT);
-            graphics.centeredText(this.font, "+", incX + 11, textY, TEXT);
+            graphics.drawCenteredString(this.font, "-", decX + 11, textY, TEXT);
+            graphics.drawCenteredString(this.font, "+", incX + 11, textY, TEXT);
 
-            graphics.centeredText(this.font, row.value(), rowRight() - 58, textY, TEXT);
+            graphics.drawCenteredString(this.font, row.value(), rowRight() - 58, textY, TEXT);
         }
         graphics.disableScissor();
 
@@ -402,7 +402,7 @@ public class ProvinceSettingsScreen extends Screen {
         boolean doneHover = mouseX >= left + panelW / 2 - 40 && mouseX < left + panelW / 2 + 40
                 && mouseY >= doneY && mouseY < doneY + 20;
         graphics.fill(left + panelW / 2 - 40, doneY, left + panelW / 2 + 40, doneY + 20, doneHover ? BTN_HOVER : BTN);
-        graphics.centeredText(this.font, "完成", left + panelW / 2, doneY + 6, TEXT);
+        graphics.drawCenteredString(this.font, "完成", left + panelW / 2, doneY + 6, TEXT);
     }
 
     @Override
