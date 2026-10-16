@@ -22,7 +22,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.Util;
+import net.minecraft.Util;
 import xaero.map.MapProcessor;
 import xaero.map.WorldMap;
 import xaero.map.WorldMapSession;

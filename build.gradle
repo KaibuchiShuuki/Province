@@ -1,6 +1,6 @@
 plugins {
-    // 26.x 线用原生 loom（无 remap 后缀），依赖一律走 implementation（非 1.x 时代的 mod 依赖配置）。
-    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+    // 1.x 线（混淆时代）用带 -remap 后缀的 loom 插件；26.x 线才是原生 fabric-loom。
+    id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
     id 'maven-publish'
 }
 
@@ -8,7 +8,7 @@ plugins {
 // Fabric 的惯例是「版本号 + MC 版本」：'+' 后面是构建元数据，游戏版本不同、模组版本可能相同，
 // 所以产物名必须带出来，玩家一眼就知道这个 jar 是给哪一版游戏用的。
 // 产物固定叫 Province-<版本>+<MC 版本>.jar（默认会跟 settings.gradle 里的工程目录名走，
-// 那样出来的是 mc-province-x.y.z.jar）。
+// 那样出来的是 mc-province-1.21.1-x.y.z.jar）。
 version = "${mod_version}+${minecraft_version}"
 base {
     archivesName = "Province"
@@ -16,22 +16,27 @@ base {
 
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
-    // 26.1 起 Minecraft 不再混淆，Mojang 官方类名直接可用，因此没有映射声明
-    // （26.x 无 yarn，loom 26.1+ 对未混淆版本默认即官方名；官方 26.2 / 26.3 分支示例都不写映射行）。
-    // 依赖配置用 implementation（1.x 时代是 mod 依赖配置，26.x 用普通 implementation）。
-    implementation "net.fabricmc:fabric-loader:${loader_version}"
-    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+    // 1.x 线必须写映射：这里用官方 Mojang 映射（mojmap）。
+    // 这是刻意的选择——26.2 那边因为 26.1 起不再混淆，官方类名直接可用；
+    // 1.x 线经 loom 用同一套官方名反混淆后，两边的类名/方法名才对得上。
+    mappings loom.officialMojangMappings()
 
+    // 1.x 线的模组依赖配置是 modImplementation（26.x 线已并入普通 implementation）。
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    // Fabric API 走 maven 坐标：它的子模块是塞在 jar 里的嵌套 jar，只有坐标形式
+    // 才会被拆开进 classpath；写成 files(...) 编译期会找不到
+    // net.fabricmc.fabric.api.* 那些包。
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
 
     // Xaero 的 World Map 仅作为编译期参照（mixin 目标 + 集成 API）。
     // 运行时由用户在 mods 目录提供，故用 compileOnly，不打包进本模组。
-    compileOnly files('_refs/xaeroworldmap-fabric-26.2-1.45.0.jar')
+    modCompileOnly files('_refs/xaeroworldmap-fabric-1.21.1-1.47.0.jar')
 
     // 小地图同理：区划图层是靠 mixin 挂进它的渲染循环，编译期只需要它的类；
     // 玩家没装小地图时那份 mixin 配置是 required=false，会被静默跳过。
     // ModuleRenderContext 这类公共件在 xaerolib 里，两个 jar 都要给。
-    compileOnly files('_refs/xaerominimap-fabric-26.2-26.4.2.jar')
-    compileOnly files('_refs/xaerolib-fabric-26.2-1.7.1.jar')
+    modCompileOnly files('_refs/xaerominimap-fabric-1.21.1-26.6.0.jar')
+    modCompileOnly files('_refs/xaerolib-fabric-1.21.1-1.7.3.jar')
 }
 
 processResources {
@@ -41,12 +46,11 @@ processResources {
 }
 
 // 目标 Java 版本用 toolchain 声明（不是 options.release + source/targetCompatibility）：
-// 环境 JDK 低于目标时（例如本机默认 Java 22、26.x 线目标 25），只有 toolchain 才会
-// 让 foojay 自动 provision 对应 JDK；否则 javac 会直接报「不支持发行版本 25」。
-// 实测：2026-09，Java 22 环境 + 目标 25，加 toolchain 后构建成功。
+// 环境 JDK 低于目标时只有 toolchain 才会让 foojay 自动 provision 对应 JDK；
+// 否则 javac 会直接报「不支持发行版本 21」。
 java {
     withSourcesJar()
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }

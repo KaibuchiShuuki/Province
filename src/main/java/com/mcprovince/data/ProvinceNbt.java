@@ -74,19 +74,19 @@ public final class ProvinceNbt {
      *         免得每次进存档都要把全部边界重算一次
      */
     public static boolean read(CompoundTag root, ProvinceStore store) {
-        boolean legacy = root.getIntOr(TAG_VERSION, 1) < DATA_VERSION;
-        ListTag list = root.getListOrEmpty(TAG_PROVINCES);
+        boolean legacy = NbtCompat.intOr(root, TAG_VERSION, 1) < DATA_VERSION;
+        ListTag list = NbtCompat.listOr(root, TAG_PROVINCES);
         int maxId = 0;
         for (int i = 0; i < list.size(); i++) {
-            CompoundTag tag = list.getCompoundOrEmpty(i);
+            CompoundTag tag = NbtCompat.compoundOr(list, i);
             if (tag.isEmpty()) {
                 continue;
             }
-            int id = tag.getIntOr(TAG_ID, -1);
+            int id = NbtCompat.intOr(tag, TAG_ID, -1);
             if (id < 0) {
                 continue;
             }
-            byte[] encoded = tag.getByteArray(TAG_SHAPE).orElse(null);
+            byte[] encoded = NbtCompat.byteArrayOr(tag, TAG_SHAPE, null);
             VectorShape shape = encoded == null ? VectorShape.empty() : VectorCodec.decode(encoded);
             if (legacy) {
                 // 0.2.0 的边界是一堆连续坐标画出来的曲线，进 0.2.1 之前按方块格线重算一遍。
@@ -94,20 +94,20 @@ public final class ProvinceNbt {
             }
             Province province = new Province(
                     id,
-                    tag.getIntOr(TAG_PARENT, Province.NO_PARENT),
-                    tag.getIntOr(TAG_TIER, Province.MIN_TIER),
-                    tag.getStringOr(TAG_NAME_ZH, ""),
-                    tag.getStringOr(TAG_NAME_EN, ""),
-                    tag.getStringOr(TAG_LEVEL, "custom"),
-                    tag.getIntOr(TAG_COLOR, 0xFFFFFF));
-            province.setVisible(tag.getBooleanOr(TAG_VISIBLE, true));
+                    NbtCompat.intOr(tag, TAG_PARENT, Province.NO_PARENT),
+                    NbtCompat.intOr(tag, TAG_TIER, Province.MIN_TIER),
+                    NbtCompat.stringOr(tag, TAG_NAME_ZH, ""),
+                    NbtCompat.stringOr(tag, TAG_NAME_EN, ""),
+                    NbtCompat.stringOr(tag, TAG_LEVEL, "custom"),
+                    NbtCompat.intOr(tag, TAG_COLOR, 0xFFFFFF));
+            province.setVisible(NbtCompat.boolOr(tag, TAG_VISIBLE, true));
             // 老档案没有这个字段：用 id 顶上，排出来跟以前一模一样。
-            province.setOrder(tag.getIntOr(TAG_ORDER, id));
+            province.setOrder(NbtCompat.intOr(tag, TAG_ORDER, id));
             province.shape().copyFrom(shape);
             store.putRaw(province);
             maxId = Math.max(maxId, id);
         }
-        int storedNext = root.getIntOr(TAG_NEXT_ID, maxId + 1);
+        int storedNext = NbtCompat.intOr(root, TAG_NEXT_ID, maxId + 1);
         store.bumpNextId(Math.max(storedNext, maxId + 1));
         // putRaw 只填数据、不建索引，载入完必须重建一次，
         // 否则 findAt / findFinestAt / isOwnedByOther 这些查询会全部落空。

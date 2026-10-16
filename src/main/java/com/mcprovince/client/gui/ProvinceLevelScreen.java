@@ -28,7 +28,7 @@ public class ProvinceLevelScreen extends Screen {
     }
 
     public static void open(ProvinceNameScreen parent) {
-        net.minecraft.client.Minecraft.getInstance().setScreenAndShow(new ProvinceLevelScreen(parent));
+        net.minecraft.client.Minecraft.getInstance().setScreen(new ProvinceLevelScreen(parent));
     }
 
     @Override
@@ -72,24 +72,24 @@ public class ProvinceLevelScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(net.minecraft.client.gui.GuiGraphicsExtractor graphics,
+    public void render(net.minecraft.client.gui.GuiGraphics graphics,
             int mouseX, int mouseY, float partialTick) {
-        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        super.render(graphics, mouseX, mouseY, partialTick);
         int boxW = Math.min(240, this.width - 40);
         int boxX = (this.width - boxW) / 2;
-        graphics.text(this.font, "级别名（必填）", boxX, 46, 0xFFFFFFFF);
-        graphics.text(this.font, "英文名（留空就用中文名）", boxX, 82, 0xFFFFFFFF);
+        graphics.drawString(this.font, "级别名（必填）", boxX, 46, 0xFFFFFFFF);
+        graphics.drawString(this.font, "英文名（留空就用中文名）", boxX, 82, 0xFFFFFFFF);
         Ui.boxValue(graphics, this.font, this.zhBox);
         Ui.boxValue(graphics, this.font, this.enBox);
         if (!this.hint.isEmpty()) {
-            graphics.centeredText(this.font, this.hint, this.width / 2, 156, 0xFFFF8080);
+            graphics.drawCenteredString(this.font, this.hint, this.width / 2, 156, 0xFFFF8080);
         }
     }
 
     @Override
     public void onClose() {
         if (this.parent != null) {
-            this.minecraft.setScreenAndShow(this.parent);
+            this.minecraft.setScreen(this.parent);
         } else {
             super.onClose();
         }

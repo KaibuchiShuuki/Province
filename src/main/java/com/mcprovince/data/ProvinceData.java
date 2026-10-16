@@ -107,7 +107,7 @@ public final class ProvinceData {
             return;
         }
         try {
-            CompoundTag tag = NbtIo.readCompressed(this.file, NbtAccounter.defaultQuota());
+            CompoundTag tag = NbtIo.readCompressed(this.file, NbtAccounter.create(8388608L));
             boolean legacy = ProvinceNbt.read(tag, this.store);
             LOGGER.info("载入 {} 个行政区划（{}）", this.store.size(), this.worldKey);
             if (legacy) {
@@ -179,7 +179,7 @@ public final class ProvinceData {
         if (level == null) {
             return "unknown";
         }
-        return sanitize(level.dimension().identifier().toString());
+        return sanitize(level.dimension().location().toString());
     }
 
     private static String sanitize(String raw) {
