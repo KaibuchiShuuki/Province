@@ -28,7 +28,7 @@ public class ProvinceLevelScreen extends Screen {
     }
 
     public static void open(ProvinceNameScreen parent) {
-        net.minecraft.client.Minecraft.getInstance().setScreenAndShow(new ProvinceLevelScreen(parent));
+        net.minecraft.client.Minecraft.getInstance().setScreen(new ProvinceLevelScreen(parent));
     }
 
     @Override
@@ -89,7 +89,7 @@ public class ProvinceLevelScreen extends Screen {
     @Override
     public void onClose() {
         if (this.parent != null) {
-            this.minecraft.setScreenAndShow(this.parent);
+            this.minecraft.setScreen(this.parent);
         } else {
             super.onClose();
         }

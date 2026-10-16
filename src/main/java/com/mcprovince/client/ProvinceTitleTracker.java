@@ -42,7 +42,6 @@ public final class ProvinceTitleTracker {
         if (label.isEmpty()) {
             return;
         }
-        // 1.21.11 线的标题 API 直接挂在 Gui 上（26.x 才拆出 Gui.hud 这一层）。
         minecraft.gui.setTimes(settings.titleFadeIn, settings.titleStay, settings.titleFadeOut);
         minecraft.gui.setTitle(Component.literal(label));
         // 副标题＝这一块的父级名，样式跟主标题一套，只是原版把它画成灰色。

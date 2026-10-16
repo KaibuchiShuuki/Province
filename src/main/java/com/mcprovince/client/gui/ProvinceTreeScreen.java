@@ -11,8 +11,6 @@ import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 /**
@@ -87,9 +85,8 @@ public class ProvinceTreeScreen extends Screen {
     /** 从当前打开着的界面跳进树状图。 */
     public static void open() {
         Minecraft minecraft = Minecraft.getInstance();
-        // 1.21.11 线没有 26.x 的 Minecraft.gui.screen()，当前界面就是 Minecraft.screen 字段。
         Screen parent = minecraft.screen;
-        minecraft.setScreenAndShow(new ProvinceTreeScreen(parent));
+        minecraft.setScreen(new ProvinceTreeScreen(parent));
     }
 
     /** 正被 ≡ 拎着的那一行（rows 里的下标）；-1 表示手上没东西。 */
@@ -306,12 +303,12 @@ public class ProvinceTreeScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != 0) {
-            return super.mouseClicked(event, doubleClick);
+    public boolean mouseClicked(double mx, double my, int button) {
+        if (button != 0) {
+            return super.mouseClicked(mx, my, button);
         }
-        double mouseX = event.x();
-        double mouseY = event.y();
+        double mouseX = mx;
+        double mouseY = my;
 
         if (this.view.overBar(mouseX, mouseY)) {
             this.view.beginDrag(mouseY);
@@ -380,24 +377,24 @@ public class ProvinceTreeScreen extends Screen {
             return true;
         }
 
-        return super.mouseClicked(event, doubleClick);
+        return super.mouseClicked(mx, my, button);
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
-        if (this.dragIndex >= 0 && event.button() == 0) {
-            dragTo(event.y());
+    public boolean mouseDragged(double mx, double my, int button, double dragX, double dragY) {
+        if (this.dragIndex >= 0 && button == 0) {
+            dragTo(my);
             return true;
         }
-        if (this.view.dragging() && event.button() == 0) {
-            this.view.dragTo(event.y());
+        if (this.view.dragging() && button == 0) {
+            this.view.dragTo(my);
             return true;
         }
-        return super.mouseDragged(event, dragX, dragY);
+        return super.mouseDragged(mx, my, button, dragX, dragY);
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
+    public boolean mouseReleased(double mx, double my, int button) {
         if (this.dragIndex >= 0) {
             this.dragIndex = -1;
             return true;
@@ -406,7 +403,7 @@ public class ProvinceTreeScreen extends Screen {
             this.view.endDrag();
             return true;
         }
-        return super.mouseReleased(event);
+        return super.mouseReleased(mx, my, button);
     }
 
     /**
@@ -500,18 +497,18 @@ public class ProvinceTreeScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
-        if (event.key() == 257 || event.key() == 335) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == 257 || keyCode == 335) {
             onClose();
             return true;
         }
-        return super.keyPressed(event);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
     public void onClose() {
         if (this.parent != null) {
-            this.minecraft.setScreenAndShow(this.parent);
+            this.minecraft.setScreen(this.parent);
         } else {
             super.onClose();
         }

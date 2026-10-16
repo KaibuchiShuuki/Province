@@ -7,9 +7,9 @@ pluginManagement {
 }
 
 // foojay：让 build.gradle 的 java.toolchain 能在缺 JDK 时自动下载（本机系统 JDK 是 25，
-// 而 1.21.11 线目标 Java 21，缺了 toolchain 会直接报「不支持发行版本」）。
+// 而 1.21.1 线目标 Java 21，缺了 toolchain 会直接报「不支持发行版本」）。
 plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
-rootProject.name = "mc-province-1.21.11"
+rootProject.name = "mc-province-1.21.1"

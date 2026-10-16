@@ -148,10 +148,7 @@ public final class ProvinceSelfTest {
         }
         if (autoWorldStage == 2 && autoWorldTicks == 260) {
             McProvince.LOGGER.info("[autoworld] 截图");
-            // 1.21.11 线没有 26.x 的 Screenshot.grab(Minecraft, boolean) 便捷重载，
-            // 退回老三参数版本：截图目录 + 主渲染目标 + 完成回调（这里不需要回调内容）。
-            Screenshot.grab(minecraft.gameDirectory, minecraft.getMainRenderTarget(), message -> {
-            });
+            Screenshot.grab(minecraft.gameDirectory, minecraft.getMainRenderTarget(), message -> {});
             autoWorldStage = 3;
         }
         if (autoWorldStage == 3 && autoWorldTicks > 340) {

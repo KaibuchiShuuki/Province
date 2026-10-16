@@ -8,8 +8,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 /** 给一块行政区划起名字：中文名、英文名、级别，外带换个颜色。 */
@@ -84,19 +82,18 @@ public class ProvinceNameScreen extends Screen {
 
     public static void open() {
         Minecraft minecraft = Minecraft.getInstance();
-        // 1.21.11 线没有 26.x 的 Minecraft.gui.screen()，当前界面就是 Minecraft.screen 字段。
         Screen parent = minecraft.screen;
-        minecraft.setScreenAndShow(new ProvinceNameScreen(parent, Province.NO_PARENT));
+        minecraft.setScreen(new ProvinceNameScreen(parent, Province.NO_PARENT));
     }
 
     /** 从指定界面跳进来（树状图里刚新建完就直接来命名）。 */
     public static void open(Screen parent) {
-        Minecraft.getInstance().setScreenAndShow(new ProvinceNameScreen(parent, Province.NO_PARENT));
+        Minecraft.getInstance().setScreen(new ProvinceNameScreen(parent, Province.NO_PARENT));
     }
 
     /** 直接改指定的那一块区划，不用先在地图上选中它。 */
     public static void open(Screen parent, int provinceId) {
-        Minecraft.getInstance().setScreenAndShow(new ProvinceNameScreen(parent, provinceId));
+        Minecraft.getInstance().setScreen(new ProvinceNameScreen(parent, provinceId));
     }
 
     @Override
@@ -333,12 +330,12 @@ public class ProvinceNameScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != 0) {
-            return super.mouseClicked(event, doubleClick);
+    public boolean mouseClicked(double mx, double my, int button) {
+        if (button != 0) {
+            return super.mouseClicked(mx, my, button);
         }
-        double mouseX = event.x();
-        double mouseY = event.y();
+        double mouseX = mx;
+        double mouseY = my;
 
         List<AdminLevels.Name> all = levels();
         int from = this.page * PER_PAGE;
@@ -420,17 +417,17 @@ public class ProvinceNameScreen extends Screen {
             return true;
         }
 
-        return super.mouseClicked(event, doubleClick);
+        return super.mouseClicked(mx, my, button);
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
-        if (event.key() == 257 || event.key() == 335) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == 257 || keyCode == 335) {
             apply();
             onClose();
             return true;
         }
-        return super.keyPressed(event);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     private void apply() {
@@ -459,7 +456,7 @@ public class ProvinceNameScreen extends Screen {
     @Override
     public void onClose() {
         if (this.parent != null) {
-            this.minecraft.setScreenAndShow(this.parent);
+            this.minecraft.setScreen(this.parent);
         } else {
             super.onClose();
         }

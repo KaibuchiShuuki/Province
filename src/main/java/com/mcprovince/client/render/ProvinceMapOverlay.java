@@ -362,7 +362,6 @@ public final class ProvinceMapOverlay {
     }
 
     private static void openSettings() {
-        // 1.21.11 线没有 26.x 的 Minecraft.gui.screen()，当前界面就是 Minecraft.screen 字段。
         ProvinceSettingsScreen.open(Minecraft.getInstance().screen);
     }
 
@@ -452,8 +451,8 @@ public final class ProvinceMapOverlay {
     private static boolean shiftDown() {
         Window window = Minecraft.getInstance().getWindow();
         return window != null
-                && (InputConstants.isKeyDown(window, InputConstants.KEY_LSHIFT)
-                        || InputConstants.isKeyDown(window, InputConstants.KEY_RSHIFT));
+                && (InputConstants.isKeyDown(window.getWindow(), InputConstants.KEY_LSHIFT)
+                        || InputConstants.isKeyDown(window.getWindow(), InputConstants.KEY_RSHIFT));
     }
 
     private static boolean isOverPanel(double mouseX, double mouseY) {

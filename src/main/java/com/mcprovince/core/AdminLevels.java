@@ -1,5 +1,6 @@
 package com.mcprovince.core;
 
+import com.mcprovince.data.NbtCompat;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -293,13 +294,13 @@ public final class AdminLevels {
             return;
         }
         try {
-            CompoundTag tag = NbtIo.readCompressed(path, NbtAccounter.defaultQuota());
-            ListTag list = tag.getListOrEmpty("levels");
+            CompoundTag tag = NbtIo.readCompressed(path, NbtAccounter.create(8388608L));
+            ListTag list = NbtCompat.listOr(tag, "levels");
             for (int i = 0; i < list.size(); i++) {
-                CompoundTag entry = list.getCompoundOrEmpty(i);
-                String key = entry.getStringOr("key", "");
-                String zh = entry.getStringOr("zh", "");
-                String en = entry.getStringOr("en", "");
+                CompoundTag entry = NbtCompat.compoundOr(list, i);
+                String key = NbtCompat.stringOr(entry, "key", "");
+                String zh = NbtCompat.stringOr(entry, "zh", "");
+                String en = NbtCompat.stringOr(entry, "en", "");
                 if (key.isEmpty() || zh.isEmpty()) {
                     continue;
                 }

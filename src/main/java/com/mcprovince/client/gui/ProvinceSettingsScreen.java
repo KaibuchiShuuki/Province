@@ -9,7 +9,6 @@ import com.mcprovince.core.Province;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -82,7 +81,7 @@ public class ProvinceSettingsScreen extends Screen {
     }
 
     public static void open(Screen parent) {
-        Minecraft.getInstance().setScreenAndShow(new ProvinceSettingsScreen(parent));
+        Minecraft.getInstance().setScreen(new ProvinceSettingsScreen(parent));
     }
 
     /** 一行内容的种类：分组标题、可调设置、可拖的滑条、纯说明。 */
@@ -406,9 +405,7 @@ public class ProvinceSettingsScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        double mx = event.x();
-        double my = event.y();
+    public boolean mouseClicked(double mx, double my, int button) {
         if (mx >= left + panelW / 2 - 40 && mx < left + panelW / 2 + 40 && my >= doneY && my < doneY + 20) {
             this.onClose();
             return true;
@@ -418,7 +415,7 @@ public class ProvinceSettingsScreen extends Screen {
             return true;
         }
         if (!this.view.containsY(my)) {
-            return super.mouseClicked(event, doubleClick);
+            return super.mouseClicked(mx, my, button);
         }
         for (int i = 0; i < rows.size(); i++) {
             Row row = rows.get(i);
@@ -452,24 +449,24 @@ public class ProvinceSettingsScreen extends Screen {
                 return true;
             }
         }
-        return super.mouseClicked(event, doubleClick);
+        return super.mouseClicked(mx, my, button);
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
-        if (this.sliding != null && event.button() == 0) {
-            slide(this.sliding, event.x());
+    public boolean mouseDragged(double mx, double my, int button, double dragX, double dragY) {
+        if (this.sliding != null && button == 0) {
+            slide(this.sliding, mx);
             return true;
         }
-        if (this.view.dragging() && event.button() == 0) {
-            this.view.dragTo(event.y());
+        if (this.view.dragging() && button == 0) {
+            this.view.dragTo(my);
             return true;
         }
-        return super.mouseDragged(event, dragX, dragY);
+        return super.mouseDragged(mx, my, button, dragX, dragY);
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
+    public boolean mouseReleased(double mx, double my, int button) {
         if (this.sliding != null) {
             this.sliding = null;
             return true;
@@ -478,7 +475,7 @@ public class ProvinceSettingsScreen extends Screen {
             this.view.endDrag();
             return true;
         }
-        return super.mouseReleased(event);
+        return super.mouseReleased(mx, my, button);
     }
 
     @Override
@@ -492,7 +489,7 @@ public class ProvinceSettingsScreen extends Screen {
     @Override
     public void onClose() {
         ProvinceSettings.get().save();
-        Minecraft.getInstance().setScreenAndShow(this.parent);
+        Minecraft.getInstance().setScreen(this.parent);
     }
 
     @Override

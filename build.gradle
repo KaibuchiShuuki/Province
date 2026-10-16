@@ -8,7 +8,7 @@ plugins {
 // Fabric 的惯例是「版本号 + MC 版本」：'+' 后面是构建元数据，游戏版本不同、模组版本可能相同，
 // 所以产物名必须带出来，玩家一眼就知道这个 jar 是给哪一版游戏用的。
 // 产物固定叫 Province-<版本>+<MC 版本>.jar（默认会跟 settings.gradle 里的工程目录名走，
-// 那样出来的是 mc-province-1.21.11-x.y.z.jar）。
+// 那样出来的是 mc-province-1.21.1-x.y.z.jar）。
 version = "${mod_version}+${minecraft_version}"
 base {
     archivesName = "Province"
@@ -29,17 +29,14 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
 
     // Xaero 的 World Map 仅作为编译期参照（mixin 目标 + 集成 API）。
-    // 运行时由用户在 mods 目录提供，故不打包进本模组。
-    // 必须用 modCompileOnly 而不是 compileOnly：1.x 线的第三方模组 jar 里是 intermediary 名
-    // （net.minecraft.class_243 之类），只有经 loom 的 remapper 过一遍才能和本项目的 mojmap 对上，
-    // 否则 javac 会报「无法访问 net.minecraft.class_2378」。
-    modCompileOnly files('_refs/xaeroworldmap-fabric-1.21.11-1.47.0.jar')
+    // 运行时由用户在 mods 目录提供，故用 compileOnly，不打包进本模组。
+    modCompileOnly files('_refs/xaeroworldmap-fabric-1.21.1-1.47.0.jar')
 
     // 小地图同理：区划图层是靠 mixin 挂进它的渲染循环，编译期只需要它的类；
     // 玩家没装小地图时那份 mixin 配置是 required=false，会被静默跳过。
     // ModuleRenderContext 这类公共件在 xaerolib 里，两个 jar 都要给。
-    modCompileOnly files('_refs/xaerominimap-fabric-1.21.11-26.6.0.jar')
-    modCompileOnly files('_refs/xaerolib-fabric-1.21.11-1.7.3.jar')
+    modCompileOnly files('_refs/xaerominimap-fabric-1.21.1-26.6.0.jar')
+    modCompileOnly files('_refs/xaerolib-fabric-1.21.1-1.7.3.jar')
 }
 
 processResources {

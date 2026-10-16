@@ -4,8 +4,8 @@ import com.mcprovince.McProvince;
 import com.mcprovince.client.ProvinceClient;
 import com.mcprovince.client.ProvinceSettings;
 import com.mcprovince.core.ProvinceStore;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.phys.Vec3;
-import xaero.hud.minimap.element.render.MinimapElementGraphics;
 
 /**
  * 小地图上的区划图层。
@@ -50,7 +50,7 @@ public final class ProvinceMinimapOverlay {
      * @param graphics Xaero 的元素绘制器，坐标原点就是小地图纹理中心
      * @param renderPos 这一帧插值后的相机位置
      */
-    public static void render(MinimapElementGraphics graphics, Vec3 renderPos) {
+    public static void render(GuiGraphics graphics, Vec3 renderPos) {
         if (graphics == null || renderPos == null) {
             return;
         }

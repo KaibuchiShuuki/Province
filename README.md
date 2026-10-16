@@ -8,16 +8,16 @@
 
 | 依赖 | 版本 |
 | --- | --- |
-| Minecraft | 1.21.11 |
+| Minecraft | 1.21.1 |
 | Fabric Loader | 0.19.3 以上 |
 | Java | 21 |
-| Fabric API | 1.21.11 线（0.141.6+1.21.11 上测过） |
-| Xaero's World Map | 1.39.0 以上（世界地图叠层和导出地图要用） |
-| Xaero's Minimap | 1.21.11 线（26.6.0 上测过） |
+| Fabric API | 1.21.1 线（0.116.17+1.21.1 上测过） |
+| Xaero's World Map | 1.47.0（1.21.1 线；世界地图叠层和导出地图要用） |
+| Xaero's Minimap | 26.6.0（1.21.1 线；小地图叠层要用） |
 
 没装 Xaero 也能进游戏，只是地图上看不到区划，编辑模式也打不开。
 
-把 `Province-0.2.1+1.21.11.jar` 丢进 `.minecraft/mods`。文件名里 `+` 后面是**这个 jar 适配的 Minecraft 版本**（Fabric 模组的通用命名惯例）：同一个模组版本会为每条 MC 线各出一个 jar（26.2、1.21.11、1.21.1、1.20.1），模组自己的版本号一样，挑跟自己的游戏版本对得上的那一个装。装错了会在启动时报错退出，不会静默跑成奇怪的行为。
+把 `Province-0.2.1+1.21.1.jar` 丢进 `.minecraft/mods`。文件名里 `+` 后面是**这个 jar 适配的 Minecraft 版本**（Fabric 模组的通用命名惯例）：以后出了别的游戏版本的构建，下载页上会同时摆着 `Province-0.2.1+1.21.1.jar` 和对应那一版，模组自己的版本号可能一样，挑跟自己的游戏版本对得上的那一个装。装错了会在启动时报错退出，不会静默跑成奇怪的行为。
 
 ## 怎么用
 
@@ -209,7 +209,9 @@
 
 ### 世界地图叠层
 
-`mixin/GuiMapMixin` 挂在 Xaero 的世界地图渲染上，把区划按当前地图投影画成色块和边框；同时每帧记一份相机快照，导出时用按下按钮那一帧的视角。
+`client/ProvinceMapHook` 挂在 Xaero 的世界地图上，把区划按当前地图投影画成色块和边框；同时每帧记一份相机快照，导出时用按下按钮那一帧的视角。
+
+这里**没有走 Mixin**，不是偷懒：`xaero.map.gui.GuiMap` 的 `render` 有五千多条指令，Mixin 只要碰了这个类，就会给它整个类重算栈帧，而 1.20.1 / 1.21.1 环境里那套 ASM 会直接抛 `LimitExceededException: Too many operations`，游戏连主界面都进不去（`@Accessor` 一样炸）。所以换成完全不碰 Xaero：用 Fabric 的 `ScreenEvents.AFTER_INIT` 认出地图界面（按类名沿继承链比对，不直接引用类），`ScreenEvents.afterRender` 上叠层，键盘和鼠标各由一个注入到原版 `KeyboardHandler.keyPress` / `MouseHandler.onPress` 的入口转进来，相机参数靠反射读 `cameraX` / `cameraZ` / `scale` / `screenScale`。两点容易踩：`afterRender` 跑在 `Screen.renderWithTooltip` 之后，那一帧 GUI 的顶点早就提交了，新画的必须自己 `graphics.flush()` 才会上屏；还有 `AFTER_INIT` 每次 `init` 都会触发，**不能判重**——从树状图 `setScreen` 回到地图时 GuiMap 会再走一遍 `init`，per-screen 的事件活不过那一趟往返，判重会让图层从此再也不出现。
 
 `client/render/ProvinceRenderer` 负责真正的绘制：填充走扫描线，边框走沿边细分。这是帧率花得最狠的地方，所以：
 
@@ -256,14 +258,17 @@ translateY = pc * offx * zoom + ps * offz * zoom
 
 ### 改代码时的几个坑
 
-这个项目跟的是 Minecraft 1.21.11 + Fabric（源码从 26.2 那条线移植过来，改法与差异都记在这里）。有些 API 是最近才改过名或者挪走的，踩过一次记在这里：
+这份是从 26.2 版移植过来的，1.21.1 上有些 API 跟 26.2 不一样，踩过一次记在这里：
 
-- **按键分类的 lang 键是单数**：`key.category.mc-province.main`。写成复数 `key.categories.…` 是更早的 `KeyMapping` 构造函数的写法，1.21.11 上的 `KeyMapping.Category` 只认单数，写错了界面上会直接显示原始键名。
-- **`Screen.hasShiftDown()` 在 1.21.11 上还在**，但这里沿用了直接问 GLFW 的写法：`InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_LSHIFT)`，左右 Shift 各判一次。26.2 线已经没有这个方法，两边保持同一份代码更省心。
-- **`ResourceKey` 取标识用 `identifier()`**，不再是 `location()`。
-- **`EditSession.onRelease()` 是无参的**，早期版本带一个坐标参数。
-- **`VectorShape` 自带 `contains(double, double)`**，判断点是否落在形状里不用先取 `Area`。
-- **`CompoundTag` 没有 `getIntArrayOr(String, int[])`**。要往 NBT 里存一组 int，用逗号分隔的 `String` 最省事（`collapsed` 就是这么存的）。
+- **按键分类的 lang 键是复数**：`key.categories.mc-province.main`。26.2 改成了单数 `key.category.…`，还换成 `KeyMapping.Category` 对象；1.21.1 的 `KeyMapping` 构造函数要的还是分类键字符串，写错了界面上会直接显示原始键名。
+- **键位注册走的是老包**：`net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(...)`。26.x 的 fabric-api 换成了 `keymapping.v1.KeyMappingHelper.registerKeyMapping(...)`，包名和方法名都不一样。
+- **`Minecraft` 上拿当前界面是字段 `screen`**，没有 26.x 的 `gui.screen()`；弹标题 / 副标题走 `Minecraft.gui.setTitle / setSubtitle / setTimes`，而不是 26.x 拆出来的 `gui.hud.*`。
+- **修饰键直接问 GLFW**：`InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_LSHIFT)`，左右 Shift 各判一次（1.21.1 的原版 `Screen.hasShiftDown()` 其实还在，这里跟 26.2 那份代码保持一致）。
+- **`ResourceKey` 取标识用 `location()`**，26.2 才改成 `identifier()`；这边也没有 `net.minecraft.resources.Identifier` 这个类。
+- **`CompoundTag` 没有 `getIntOr / getStringOr / getBooleanOr / getListOrEmpty` 那一族**（26.2 才有）。1.21.1 只有 `contains(key, type)` 加裸取值，这套语义由 `data/NbtCompat` 补齐，调用点写法保持不变。
+- **往 NBT 里存一组 int**：沿用它处一样的逗号分隔 `String`（`collapsed` 就是这么存的），不用 `getIntArrayOr`——1.21.1 上没有这个方法。
+- **Xaero 的第三方 jar 必须用 `modCompileOnly files(...)`**，不能写 `compileOnly files(...)`：1.x 线的模组 jar 里存的是 intermediary 名（`net.minecraft.class_2378` 之类），`compileOnly` 不过 loom 的 remapper，javac 会报「无法访问 class_2378」。
+- **1.21.1 线的 Xaero 小地图（26.6.0）没有 `MinimapElementGraphics`**：元素绘制直接用原版 `GuiGraphics`，而且它是 `MinimapElementRendererHandler.render(...)` 的第一个参数，不是字段。
 - **改版本号后要删 `build/resources`**，否则 `processResources` 的 expand 不重跑，产物名和 `fabric.mod.json` 里的版本会悄悄对不上。
 - **别用 `Get-Process java | Stop-Process -Force` 收尾**。Gradle 守护进程也是 java，一起杀掉之后下一次构建要重新起，特别慢。只杀命令行里带 `devlaunch` 的那几个游戏进程。
 
@@ -294,7 +299,7 @@ gradlew.bat build
 ./gradlew build
 ```
 
-产物是 `build/libs/Province-0.2.1+1.21.11.jar`。
+产物是 `build/libs/Province-0.2.1+1.21.1.jar`。
 
 版本号与 MC 版本都在 `gradle.properties` 里：`mod_version` 是模组自己的版本，`minecraft_version` 是适配的游戏版本，`build.gradle` 只负责把它们拼成 `Province-<mod_version>+<minecraft_version>.jar`。要出别的游戏版本的构建，改 `minecraft_version`（以及 `fabric_api_version` 那条对应的线）重编即可，产物名会自动跟着变。
 
@@ -310,7 +315,7 @@ src/main/java/com/mcprovince/
   client/                    快捷键、编辑状态、设置、导出、像素字
   client/gui/                区划树、命名、新增级别名、设置四个界面，外加共用的 Ui 与 ScrollViewport
   client/render/             世界地图叠层、小地图叠层、绘制器、投影
-  mixin/                     Xaero 世界地图与小地图的注入点
+  mixin/                     小地图元素与键鼠入口的注入点（世界地图刻意不碰 Mixin）
 src/main/resources/
   fabric.mod.json
   mc-province.mixins.json
