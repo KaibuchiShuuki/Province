@@ -196,7 +196,7 @@ public class ProvinceTreeScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics) {
         graphics.fill(0, 0, this.width, this.height, 0xC0000000);
     }
 
@@ -381,20 +381,20 @@ public class ProvinceTreeScreen extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(double mx, double my, int button, double dragX, double dragY) {
+    public boolean mouseDragged(double x, double y, int button, double dragX, double dragY) {
         if (this.dragIndex >= 0 && button == 0) {
-            dragTo(my);
+            dragTo(y);
             return true;
         }
         if (this.view.dragging() && button == 0) {
-            this.view.dragTo(my);
+            this.view.dragTo(y);
             return true;
         }
-        return super.mouseDragged(mx, my, button, dragX, dragY);
+        return super.mouseDragged(x, y, button, dragX, dragY);
     }
 
     @Override
-    public boolean mouseReleased(double mx, double my, int button) {
+    public boolean mouseReleased(double x, double y, int button) {
         if (this.dragIndex >= 0) {
             this.dragIndex = -1;
             return true;
@@ -403,7 +403,7 @@ public class ProvinceTreeScreen extends Screen {
             this.view.endDrag();
             return true;
         }
-        return super.mouseReleased(mx, my, button);
+        return super.mouseReleased(x, y, button);
     }
 
     /**
@@ -471,11 +471,11 @@ public class ProvinceTreeScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
         if (this.view.scrollBy(scrollY)) {
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        return super.mouseScrolled(mouseX, mouseY, scrollY);
     }
 
     /** 在某个父区划下面新建一块，然后直接进命名界面。传 {@code null} 就是新建顶级。 */

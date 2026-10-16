@@ -8,12 +8,8 @@ import org.lwjgl.glfw.GLFW;
 /** 快捷键。默认都不占用游戏常用键位。 */
 public final class ProvinceKeys {
 
-    /**
-     * 1.21.1 的 {@code KeyMapping} 收的还是分类的 lang 键字符串本身
-     * （26.2 才换成 {@code KeyMapping.Category} 对象），而且 1.x 线的分类键是复数
-     * {@code key.categories.*}——单数写法要等到 26.x 才认。
-     */
-    public static final String CATEGORY = "key.categories.mc-province.main";
+    /** 1.20.1 的 KeyMapping 收的是类别翻译键字符串，而不是 26.x 的 KeyMapping.Category 对象。 */
+    public static final String CATEGORY = "key.category.mc-province.main";
 
     /** 打开编辑器。 */
     public static KeyMapping openEditor;

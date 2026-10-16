@@ -8,16 +8,16 @@
 
 | 依赖 | 版本 |
 | --- | --- |
-| Minecraft | 1.21.1 |
+| Minecraft | 1.20.1 |
 | Fabric Loader | 0.19.3 以上 |
-| Java | 21 |
-| Fabric API | 1.21.1 线（0.116.17+1.21.1 上测过） |
-| Xaero's World Map | 1.47.0（1.21.1 线；世界地图叠层和导出地图要用） |
-| Xaero's Minimap | 26.6.0（1.21.1 线；小地图叠层要用） |
+| Java | 17 |
+| Fabric API | 1.20.1 线（0.92.12+1.20.1 上测过） |
+| Xaero's World Map | 1.39.0 以上（世界地图叠层和导出地图要用；1.20.1 线在 1.47.0 上测过） |
+| Xaero's Minimap | 1.20.1 线（小地图叠层要用；1.20.1 线在 26.6.0 上测过） |
 
 没装 Xaero 也能进游戏，只是地图上看不到区划，编辑模式也打不开。
 
-把 `Province-0.2.1+1.21.1.jar` 丢进 `.minecraft/mods`。文件名里 `+` 后面是**这个 jar 适配的 Minecraft 版本**（Fabric 模组的通用命名惯例）：以后出了别的游戏版本的构建，下载页上会同时摆着 `Province-0.2.1+1.21.1.jar` 和对应那一版，模组自己的版本号可能一样，挑跟自己的游戏版本对得上的那一个装。装错了会在启动时报错退出，不会静默跑成奇怪的行为。
+把 `Province-0.2.1+1.20.1.jar` 丢进 `.minecraft/mods`。文件名里 `+` 后面是**这个 jar 适配的 Minecraft 版本**（Fabric 模组的通用命名惯例）：同一份源码按游戏版本分支出包（1.20.1 / 1.21.1 / 1.21.11 / 26.2 各一份），模组自己的版本号一样，挑跟自己的游戏版本对得上的那一个装。装错了会在启动时报错退出，不会静默跑成奇怪的行为。
 
 ## 怎么用
 
@@ -258,17 +258,19 @@ translateY = pc * offx * zoom + ps * offz * zoom
 
 ### 改代码时的几个坑
 
-这份是从 26.2 版移植过来的，1.21.1 上有些 API 跟 26.2 不一样，踩过一次记在这里：
+这一段是 1.20.1 线自己的坑。这份源码是从 26.2 版移植过来的，1.20.1 属于混淆时代的老线，一路上不少 API 跟 26.x 完全不是一回事，踩过一次记在这里：
 
-- **按键分类的 lang 键是复数**：`key.categories.mc-province.main`。26.2 改成了单数 `key.category.…`，还换成 `KeyMapping.Category` 对象；1.21.1 的 `KeyMapping` 构造函数要的还是分类键字符串，写错了界面上会直接显示原始键名。
-- **键位注册走的是老包**：`net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(...)`。26.x 的 fabric-api 换成了 `keymapping.v1.KeyMappingHelper.registerKeyMapping(...)`，包名和方法名都不一样。
-- **`Minecraft` 上拿当前界面是字段 `screen`**，没有 26.x 的 `gui.screen()`；弹标题 / 副标题走 `Minecraft.gui.setTitle / setSubtitle / setTimes`，而不是 26.x 拆出来的 `gui.hud.*`。
-- **修饰键直接问 GLFW**：`InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_LSHIFT)`，左右 Shift 各判一次（1.21.1 的原版 `Screen.hasShiftDown()` 其实还在，这里跟 26.2 那份代码保持一致）。
-- **`ResourceKey` 取标识用 `location()`**，26.2 才改成 `identifier()`；这边也没有 `net.minecraft.resources.Identifier` 这个类。
-- **`CompoundTag` 没有 `getIntOr / getStringOr / getBooleanOr / getListOrEmpty` 那一族**（26.2 才有）。1.21.1 只有 `contains(key, type)` 加裸取值，这套语义由 `data/NbtCompat` 补齐，调用点写法保持不变。
-- **往 NBT 里存一组 int**：沿用它处一样的逗号分隔 `String`（`collapsed` 就是这么存的），不用 `getIntArrayOr`——1.21.1 上没有这个方法。
-- **Xaero 的第三方 jar 必须用 `modCompileOnly files(...)`**，不能写 `compileOnly files(...)`：1.x 线的模组 jar 里存的是 intermediary 名（`net.minecraft.class_2378` 之类），`compileOnly` 不过 loom 的 remapper，javac 会报「无法访问 class_2378」。
-- **1.21.1 线的 Xaero 小地图（26.6.0）没有 `MinimapElementGraphics`**：元素绘制直接用原版 `GuiGraphics`，而且它是 `MinimapElementRendererHandler.render(...)` 的第一个参数，不是字段。
+- **GUI 类名和绘制方法都换过**：26.x 的 `GuiGraphicsExtractor` 在 1.20.1 叫 `GuiGraphics`；26.x 上的 `text` / `centeredText` / `outline` 在这里分别叫 `drawString` / `drawCenteredString` / `renderOutline`，界面重绘入口也从 `extractRenderState` 回到 `render(GuiGraphics, int, int, float)`（背景是 `renderBackground(GuiGraphics)`，只有一个参数的重载）。
+- **没有 `KeyEvent` / `MouseButtonEvent`**：输入事件回到原始签名 `keyPressed(int, int, int)`、`mouseClicked(double, double, int)`、`mouseDragged(double, double, int, double, double)`、`mouseReleased(double, double, int)`。
+- **按键注册走 `KeyBindingHelper`**：`KeyMapping.Category.register` + `KeyMappingHelper` 是后来的线才有的；1.20.1 用 `new KeyMapping(name, InputConstants.Type.KEYSYM, key, "key.category.mc-province.main")` 配 `KeyBindingHelper.registerKeyBinding(...)`，分类名是普通字符串。
+- **标识符写成 `new ResourceLocation(namespace, path)`**，没有 `Identifier.fromNamespaceAndPath` / `withDefaultNamespace`。
+- **NBT 只能走 File**：`NbtIo.readCompressed(Path, NbtAccounter)` / `writeCompressed(CompoundTag, Path)` 在 1.20.1 不存在，只有 `readCompressed(File)` / `writeCompressed(CompoundTag, File)`，读的时候也就没有 `NbtAccounter` 的限额保护。`CompoundTag` 同样没有 `getIntOr` / `getStringOr` / `getBooleanOr` 这一套，改用 `contains(key[, type])` 自己兜底。
+- **`Screen` 上没有 `hasShiftDown()` 了**。要判断修饰键就直接问 GLFW：`InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), InputConstants.KEY_LSHIFT)`，左右 Shift 各判一次。
+- **Xaero 小地图的绘制入口不一样**：26.x 用 `MinimapElementGraphics` 画进 FBO，而 1.20.1 线的 Xaero 小地图（26.6.0）里没有这个类；改成注入 `MinimapElementRendererHandler.render(GuiGraphics, Vec3, float, RenderTarget, double, ResourceKey)`，拿首参 `GuiGraphics` 直接画（`fill(int, int, int, int, int)` 签名一致，`ProvinceRenderer` 那套扫描线原样能用）。
+- **Xaero 的 jar 必须用 `modCompileOnly`**：1.x 线第三方模组 jar 里是 intermediary 名（`net.minecraft.class_243` 之类），写成 `compileOnly` 会报「无法访问 class_xxx」；只有 `mod*` 开头的依赖配置会被 loom 重新映射成官方名。
+- **`EditSession.onRelease()` 是无参的**，早期版本带一个坐标参数。
+- **`VectorShape` 自带 `contains(double, double)`**，判断点是否落在形状里不用先取 `Area`。
+- **`CompoundTag` 没有 `getIntArrayOr(String, int[])`**。要往 NBT 里存一组 int，用逗号分隔的 `String` 最省事（`collapsed` 就是这么存的）。
 - **改版本号后要删 `build/resources`**，否则 `processResources` 的 expand 不重跑，产物名和 `fabric.mod.json` 里的版本会悄悄对不上。
 - **别用 `Get-Process java | Stop-Process -Force` 收尾**。Gradle 守护进程也是 java，一起杀掉之后下一次构建要重新起，特别慢。只杀命令行里带 `devlaunch` 的那几个游戏进程。
 
@@ -299,7 +301,7 @@ gradlew.bat build
 ./gradlew build
 ```
 
-产物是 `build/libs/Province-0.2.1+1.21.1.jar`。
+产物是 `build/libs/Province-0.2.1+1.20.1.jar`。
 
 版本号与 MC 版本都在 `gradle.properties` 里：`mod_version` 是模组自己的版本，`minecraft_version` 是适配的游戏版本，`build.gradle` 只负责把它们拼成 `Province-<mod_version>+<minecraft_version>.jar`。要出别的游戏版本的构建，改 `minecraft_version`（以及 `fabric_api_version` 那条对应的线）重编即可，产物名会自动跟着变。
 

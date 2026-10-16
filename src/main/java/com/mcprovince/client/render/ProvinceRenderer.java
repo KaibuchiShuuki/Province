@@ -26,7 +26,7 @@ public final class ProvinceRenderer {
      * 只管「画一个矩形」的绘制目标。
      *
      * <p>世界地图那一侧是 {@code GuiGraphics}，小地图那一侧是 Xaero 的
-     * {@code MinimapElementGraphics}（画在小地图自己的 FBO 里），两者没有共同父类，
+     * {@code GuiGraphics}（画在小地图自己的 FBO 里），两者没有共同父类，
      * 但都提供了同样签名的 {@code fill(int,int,int,int,int)}，取交集就够了。</p>
      */
     public interface Sink {
@@ -105,7 +105,7 @@ public final class ProvinceRenderer {
      * 只画填充与描边，不画地名。
      *
      * <p>小地图那一侧画在小地图自己的 FBO 里，手上只有 Xaero 的
-     * {@code MinimapElementGraphics}，它没有字体绘制，所以单留这个不碰文字的入口。</p>
+     * {@code GuiGraphics}，它没有字体绘制，所以单留这个不碰文字的入口。</p>
      */
     public static void drawShapes(Sink sink, ProvinceStore store, ProvinceSettings settings, Projection projection,
             double clipMinX, double clipMinY, double clipMaxX, double clipMaxY,

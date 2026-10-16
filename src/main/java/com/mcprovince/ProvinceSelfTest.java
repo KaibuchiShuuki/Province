@@ -116,8 +116,8 @@ public final class ProvinceSelfTest {
             if (autoWorldStage == 0 && autoWorldTicks > 120) {
                 autoWorldStage = 1;
                 McProvince.LOGGER.info("[autoworld] 打开测试存档");
-                minecraft.createWorldOpenFlows().openWorld("New World",
-                        () -> McProvince.LOGGER.error("[autoworld] 打开测试存档失败"));
+                // 1.20.1 的 WorldOpenFlows 只有 loadLevel(Screen, String)，没有 26.x 的 openWorld(String, Runnable)。
+                minecraft.createWorldOpenFlows().loadLevel(null, "New World");
             }
             return;
         }
@@ -148,7 +148,8 @@ public final class ProvinceSelfTest {
         }
         if (autoWorldStage == 2 && autoWorldTicks == 260) {
             McProvince.LOGGER.info("[autoworld] 截图");
-            Screenshot.grab(minecraft.gameDirectory, minecraft.getMainRenderTarget(), message -> {});
+            Screenshot.grab(minecraft.gameDirectory, minecraft.getMainRenderTarget(),
+                    component -> McProvince.LOGGER.info("[autoworld] 截图：{}", component.getString()));
             autoWorldStage = 3;
         }
         if (autoWorldStage == 3 && autoWorldTicks > 340) {

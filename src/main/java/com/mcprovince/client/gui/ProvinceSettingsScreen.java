@@ -453,20 +453,20 @@ public class ProvinceSettingsScreen extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(double mx, double my, int button, double dragX, double dragY) {
+    public boolean mouseDragged(double x, double y, int button, double dragX, double dragY) {
         if (this.sliding != null && button == 0) {
-            slide(this.sliding, mx);
+            slide(this.sliding, x);
             return true;
         }
         if (this.view.dragging() && button == 0) {
-            this.view.dragTo(my);
+            this.view.dragTo(y);
             return true;
         }
-        return super.mouseDragged(mx, my, button, dragX, dragY);
+        return super.mouseDragged(x, y, button, dragX, dragY);
     }
 
     @Override
-    public boolean mouseReleased(double mx, double my, int button) {
+    public boolean mouseReleased(double x, double y, int button) {
         if (this.sliding != null) {
             this.sliding = null;
             return true;
@@ -475,15 +475,15 @@ public class ProvinceSettingsScreen extends Screen {
             this.view.endDrag();
             return true;
         }
-        return super.mouseReleased(mx, my, button);
+        return super.mouseReleased(x, y, button);
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
         if (this.view.scrollBy(scrollY)) {
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        return super.mouseScrolled(mouseX, mouseY, scrollY);
     }
 
     @Override

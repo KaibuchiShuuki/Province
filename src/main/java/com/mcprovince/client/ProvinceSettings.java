@@ -1,12 +1,10 @@
 package com.mcprovince.client;
 
-import com.mcprovince.data.NbtCompat;
 import com.mcprovince.core.BorderStyle;
 import com.mcprovince.core.NameFormat;
 import com.mcprovince.core.Province;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,39 +128,40 @@ public final class ProvinceSettings {
             return;
         }
         try {
-            CompoundTag tag = NbtIo.readCompressed(path, NbtAccounter.create(8388608L));
-            this.worldMapEnabled = NbtCompat.boolOr(tag, "worldMapEnabled", this.worldMapEnabled);
-            this.minimapEnabled = NbtCompat.boolOr(tag, "minimapEnabled", this.minimapEnabled);
+            // 同 ProvinceData：1.20.1 的 NbtIo.readCompressed 不收 NbtAccounter 参数。
+            CompoundTag tag = NbtIo.readCompressed(path.toFile());
+            this.worldMapEnabled = (tag.contains("worldMapEnabled") ? tag.getBoolean("worldMapEnabled") : this.worldMapEnabled);
+            this.minimapEnabled = (tag.contains("minimapEnabled") ? tag.getBoolean("minimapEnabled") : this.minimapEnabled);
             // 不再兼容旧的 highestTierShown：那一版默认值是最高级，留着会把新默认值第一级顶掉。
-            this.shownTier = clamp(NbtCompat.intOr(tag, "shownTier", this.shownTier),
+            this.shownTier = clamp((tag.contains("shownTier") ? tag.getInt("shownTier") : this.shownTier),
                     Province.MIN_TIER, Province.MAX_TIER);
             this.collapsed.clear();
-            for (String part : NbtCompat.stringOr(tag, "collapsed", "").split(",")) {
+            for (String part : (tag.contains("collapsed") ? tag.getString("collapsed") : "").split(",")) {
                 if (!part.isEmpty() && part.chars().allMatch(Character::isDigit)) {
                     this.collapsed.add(Integer.parseInt(part));
                 }
             }
-            this.showNames = NbtCompat.boolOr(tag, "showNames", this.showNames);
-            this.nameSlack = clamp(NbtCompat.intOr(tag, "nameSlack", this.nameSlack), NAME_SLACK_MIN, NAME_SLACK_MAX);
-            this.nameFormat = NameFormat.byKey(NbtCompat.stringOr(tag, "nameFormat", this.nameFormat.key()));
-            this.showFilled = NbtCompat.boolOr(tag, "showFilled", this.showFilled);
-            this.fillOpacityPercent = clamp(NbtCompat.intOr(tag, "fillOpacity", this.fillOpacityPercent), 0, 100);
-            this.smartFill = NbtCompat.boolOr(tag, "smartFill", this.smartFill);
-            this.smartStroke = NbtCompat.boolOr(tag, "smartStroke", this.smartStroke);
-            this.brushPixels = clamp(NbtCompat.intOr(tag, "brushPixels", this.brushPixels), 2, 48);
-            this.serialMarks = NbtCompat.boolOr(tag, "serialMarks", this.serialMarks);
-            this.serialCorner = SerialCorner.byName(NbtCompat.stringOr(tag, "serialCorner", this.serialCorner.name()));
-            this.areaInKilo = NbtCompat.boolOr(tag, "areaInKilo", this.areaInKilo);
-            this.borderStyle = BorderStyle.byKey(NbtCompat.stringOr(tag, "borderStyle", this.borderStyle.key()));
-            this.borderWidth = clamp(NbtCompat.intOr(tag, "borderWidth", this.borderWidth), 1, 8);
-            this.exportWithProvinces = NbtCompat.boolOr(tag, "exportWithProvinces", this.exportWithProvinces);
-            this.titleEnabled = NbtCompat.boolOr(tag, "titleEnabled", this.titleEnabled);
-            this.titleSubtitle = NbtCompat.boolOr(tag, "titleSubtitle", this.titleSubtitle);
-            this.titleTier = clamp(NbtCompat.intOr(tag, "titleTier", this.titleTier), Province.MIN_TIER, Province.MAX_TIER);
-            this.titleFormat = NameFormat.byKey(NbtCompat.stringOr(tag, "titleFormat", this.titleFormat.key()));
-            this.titleFadeIn = clamp(NbtCompat.intOr(tag, "titleFadeIn", this.titleFadeIn), 0, 200);
-            this.titleStay = clamp(NbtCompat.intOr(tag, "titleStay", this.titleStay), 10, 600);
-            this.titleFadeOut = clamp(NbtCompat.intOr(tag, "titleFadeOut", this.titleFadeOut), 0, 200);
+            this.showNames = (tag.contains("showNames") ? tag.getBoolean("showNames") : this.showNames);
+            this.nameSlack = clamp((tag.contains("nameSlack") ? tag.getInt("nameSlack") : this.nameSlack), NAME_SLACK_MIN, NAME_SLACK_MAX);
+            this.nameFormat = NameFormat.byKey((tag.contains("nameFormat") ? tag.getString("nameFormat") : this.nameFormat.key()));
+            this.showFilled = (tag.contains("showFilled") ? tag.getBoolean("showFilled") : this.showFilled);
+            this.fillOpacityPercent = clamp((tag.contains("fillOpacity") ? tag.getInt("fillOpacity") : this.fillOpacityPercent), 0, 100);
+            this.smartFill = (tag.contains("smartFill") ? tag.getBoolean("smartFill") : this.smartFill);
+            this.smartStroke = (tag.contains("smartStroke") ? tag.getBoolean("smartStroke") : this.smartStroke);
+            this.brushPixels = clamp((tag.contains("brushPixels") ? tag.getInt("brushPixels") : this.brushPixels), 2, 48);
+            this.serialMarks = (tag.contains("serialMarks") ? tag.getBoolean("serialMarks") : this.serialMarks);
+            this.serialCorner = SerialCorner.byName((tag.contains("serialCorner") ? tag.getString("serialCorner") : this.serialCorner.name()));
+            this.areaInKilo = (tag.contains("areaInKilo") ? tag.getBoolean("areaInKilo") : this.areaInKilo);
+            this.borderStyle = BorderStyle.byKey((tag.contains("borderStyle") ? tag.getString("borderStyle") : this.borderStyle.key()));
+            this.borderWidth = clamp((tag.contains("borderWidth") ? tag.getInt("borderWidth") : this.borderWidth), 1, 8);
+            this.exportWithProvinces = (tag.contains("exportWithProvinces") ? tag.getBoolean("exportWithProvinces") : this.exportWithProvinces);
+            this.titleEnabled = (tag.contains("titleEnabled") ? tag.getBoolean("titleEnabled") : this.titleEnabled);
+            this.titleSubtitle = (tag.contains("titleSubtitle") ? tag.getBoolean("titleSubtitle") : this.titleSubtitle);
+            this.titleTier = clamp((tag.contains("titleTier") ? tag.getInt("titleTier") : this.titleTier), Province.MIN_TIER, Province.MAX_TIER);
+            this.titleFormat = NameFormat.byKey((tag.contains("titleFormat") ? tag.getString("titleFormat") : this.titleFormat.key()));
+            this.titleFadeIn = clamp((tag.contains("titleFadeIn") ? tag.getInt("titleFadeIn") : this.titleFadeIn), 0, 200);
+            this.titleStay = clamp((tag.contains("titleStay") ? tag.getInt("titleStay") : this.titleStay), 10, 600);
+            this.titleFadeOut = clamp((tag.contains("titleFadeOut") ? tag.getInt("titleFadeOut") : this.titleFadeOut), 0, 200);
         } catch (IOException e) {
             LOGGER.error("读取设置失败：{}", path, e);
         }
@@ -209,7 +208,7 @@ public final class ProvinceSettings {
             if (parent != null) {
                 Files.createDirectories(parent);
             }
-            NbtIo.writeCompressed(tag, path);
+            NbtIo.writeCompressed(tag, path.toFile());
         } catch (IOException e) {
             LOGGER.error("保存设置失败：{}", path, e);
         }

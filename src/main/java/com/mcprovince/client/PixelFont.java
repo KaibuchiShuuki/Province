@@ -57,8 +57,8 @@ public final class PixelFont {
     /** 找不到字形时占位的推进量。 */
     private static final float MISSING_ADVANCE = 4.0f;
 
-    private static final ResourceLocation ASCII_TEXTURE = ResourceLocation.withDefaultNamespace("textures/font/ascii.png");
-    private static final ResourceLocation UNIFONT_ARCHIVE = ResourceLocation.withDefaultNamespace("font/unifont.zip");
+    private static final ResourceLocation ASCII_TEXTURE = new ResourceLocation("textures/font/ascii.png");
+    private static final ResourceLocation UNIFONT_ARCHIVE = new ResourceLocation("font/unifont.zip");
 
     /**
      * unifont.json 里 unihex provider（hex_file = minecraft:font/unifont.zip）的 size_overrides，按 json 顺序。
