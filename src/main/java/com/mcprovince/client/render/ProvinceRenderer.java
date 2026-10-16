@@ -7,7 +7,7 @@ import com.mcprovince.core.ProvinceStore;
 import com.mcprovince.core.VectorShape;
 import java.util.List;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 
 /**
  * 把矢量区划画到任意一张地图上。
@@ -25,8 +25,8 @@ public final class ProvinceRenderer {
     /**
      * 只管「画一个矩形」的绘制目标。
      *
-     * <p>世界地图那一侧是 {@code GuiGraphicsExtractor}，小地图那一侧是 Xaero 的
-     * {@code MinimapElementGraphics}（画在小地图自己的 FBO 里），两者没有共同父类，
+     * <p>世界地图那一侧是 {@code GuiGraphics}，小地图那一侧是 Xaero 的
+     * {@code GuiGraphics}（画在小地图自己的 FBO 里），两者没有共同父类，
      * 但都提供了同样签名的 {@code fill(int,int,int,int,int)}，取交集就够了。</p>
      */
     public interface Sink {
@@ -94,7 +94,7 @@ public final class ProvinceRenderer {
      *
      * @param onlyTier 只画这一级的区划（编辑模式用）；{@code 0} 表示按设置里的「显示到第几级」画
      */
-    public static void draw(GuiGraphicsExtractor graphics, Font font, ProvinceStore store, ProvinceSettings settings,
+    public static void draw(GuiGraphics graphics, Font font, ProvinceStore store, ProvinceSettings settings,
             Projection projection, double clipMinX, double clipMinY, double clipMaxX, double clipMaxY,
             double pixelsPerBlock, int onlyTier) {
         drawInto(graphics::fill, graphics, font, store, settings, projection,
@@ -105,7 +105,7 @@ public final class ProvinceRenderer {
      * 只画填充与描边，不画地名。
      *
      * <p>小地图那一侧画在小地图自己的 FBO 里，手上只有 Xaero 的
-     * {@code MinimapElementGraphics}，它没有字体绘制，所以单留这个不碰文字的入口。</p>
+     * {@code GuiGraphics}，它没有字体绘制，所以单留这个不碰文字的入口。</p>
      */
     public static void drawShapes(Sink sink, ProvinceStore store, ProvinceSettings settings, Projection projection,
             double clipMinX, double clipMinY, double clipMaxX, double clipMaxY,
@@ -139,7 +139,7 @@ public final class ProvinceRenderer {
         };
     }
 
-    private static void drawInto(Sink sink, GuiGraphicsExtractor graphics, Font font,
+    private static void drawInto(Sink sink, GuiGraphics graphics, Font font,
             ProvinceStore store, ProvinceSettings settings,
             Projection projection, double clipMinX, double clipMinY, double clipMaxX, double clipMaxY,
             double pixelsPerBlock, int onlyTier) {
@@ -461,7 +461,7 @@ public final class ProvinceRenderer {
      * 换来的是细长地块也有名字。要是要求整行字连边角都落在里面，一条几格宽的长条
      * 就永远不可能有名字。</p>
      */
-    private static boolean drawNames(GuiGraphicsExtractor graphics, Font font, Projection projection,
+    private static boolean drawNames(GuiGraphics graphics, Font font, Projection projection,
                                   VectorShape shape, String label,
                                   double clipMinX, double clipMinY, double clipMaxX, double clipMaxY) {
         double pixelsPerBlock = Math.abs(projection.screenX(1.0, 0.0) - projection.screenX(0.0, 0.0));
@@ -504,7 +504,7 @@ public final class ProvinceRenderer {
             int textY = (int) Math.round(projection.screenY(anchor[0], anchor[1]));
             if (textX >= clipMinX - 100 && textX <= clipMaxX + 100
                     && textY >= clipMinY - 20 && textY <= clipMaxY + 20) {
-                graphics.centeredText(font, label, textX, textY, 0xFFFFFFFF);
+                graphics.drawCenteredString(font, label, textX, textY, 0xFFFFFFFF);
                 drawn = true;
             }
         }

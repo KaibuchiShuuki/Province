@@ -22,7 +22,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.Util;
+import net.minecraft.Util;
 import xaero.map.MapProcessor;
 import xaero.map.WorldMap;
 import xaero.map.WorldMapSession;
@@ -317,7 +317,7 @@ public final class MapExporter {
     /** 导出完把生成目录打开，省得玩家自己翻存档文件夹；打不开也不影响导出本身。 */
     private static void openExportFolder(Minecraft minecraft) {
         try {
-            Util.getPlatform().openPath(ProvinceData.exportDir(minecraft));
+            Util.getPlatform().openFile(ProvinceData.exportDir(minecraft).toFile());
         } catch (RuntimeException e) {
             // 静默跳过：文件夹打不开不是导出失败。
         }

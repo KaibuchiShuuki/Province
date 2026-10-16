@@ -9,10 +9,8 @@ import com.mcprovince.core.ProvinceStore;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 /**
@@ -87,8 +85,8 @@ public class ProvinceTreeScreen extends Screen {
     /** 从当前打开着的界面跳进树状图。 */
     public static void open() {
         Minecraft minecraft = Minecraft.getInstance();
-        Screen parent = minecraft.gui == null ? null : minecraft.gui.screen();
-        minecraft.setScreenAndShow(new ProvinceTreeScreen(parent));
+        Screen parent = minecraft.screen;
+        minecraft.setScreen(new ProvinceTreeScreen(parent));
     }
 
     /** 正被 ≡ 拎着的那一行（rows 里的下标）；-1 表示手上没东西。 */
@@ -198,23 +196,23 @@ public class ProvinceTreeScreen extends Screen {
     }
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics) {
         graphics.fill(0, 0, this.width, this.height, 0xC0000000);
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        super.render(graphics, mouseX, mouseY, partialTick);
         this.rows = buildRows();
         this.view.setContentH(this.rows.size() * ROW_STEP);
 
         ProvinceSettings settings = ProvinceSettings.get();
-        graphics.centeredText(this.font, this.title.getString(), this.width / 2, 10, COL_TEXT);
+        graphics.drawCenteredString(this.font, this.title.getString(), this.width / 2, 10, COL_TEXT);
         graphics.fill(this.panelX, this.panelY, this.panelX + this.panelW, this.panelY + this.panelH, COL_PANEL);
-        graphics.outline(this.panelX, this.panelY, this.panelW, this.panelH, COL_EDGE);
+        graphics.renderOutline(this.panelX, this.panelY, this.panelW, this.panelH, COL_EDGE);
 
         if (this.rows.isEmpty()) {
-            graphics.centeredText(this.font, "还没有任何区划，先去世界地图上画一块", this.width / 2,
+            graphics.drawCenteredString(this.font, "还没有任何区划，先去世界地图上画一块", this.width / 2,
                     this.panelY + 18, COL_TEXT_DIM);
         }
 
@@ -248,50 +246,50 @@ public class ProvinceTreeScreen extends Screen {
                 // 光画那个小三角，不给它套方框、也不铺底色：行里本来就有勾选框和色块，
                 // 再多一个框，看着比色块还大，喧宾夺主。
                 boolean overTri = Ui.inside(mouseX, mouseY, tX, y + 1, TRI_W, ROW_H - 2);
-                graphics.centeredText(this.font, row.collapsed() ? "▶" : "▼", tX + TRI_W / 2, y + 5,
+                graphics.drawCenteredString(this.font, row.collapsed() ? "▶" : "▼", tX + TRI_W / 2, y + 5,
                         overTri ? COL_TRI_HOVER : COL_TEXT);
             }
 
             int ckX = checkX(row);
             graphics.fill(ckX, y + 1, ckX + CHECK_W, y + ROW_H - 1,
                     province.visible() ? COL_CHECK_ON : COL_CHECK_OFF);
-            graphics.outline(ckX, y + 1, CHECK_W, ROW_H - 2,
+            graphics.renderOutline(ckX, y + 1, CHECK_W, ROW_H - 2,
                     province.visible() ? 0xFF7FD4FF : COL_EDGE);
             if (province.visible()) {
-                graphics.centeredText(this.font, "✓", ckX + CHECK_W / 2, y + 5, COL_TEXT);
+                graphics.drawCenteredString(this.font, "✓", ckX + CHECK_W / 2, y + 5, COL_TEXT);
             }
 
             int bx = contentX(row);
             graphics.fill(bx, y + 4, bx + SWATCH, y + 4 + SWATCH, 0xFF000000 | province.color());
-            graphics.outline(bx, y + 4, SWATCH, SWATCH, COL_EDGE);
+            graphics.renderOutline(bx, y + 4, SWATCH, SWATCH, COL_EDGE);
 
             // 没勾上的那块名字压暗，跟显示中的一眼分开。
-            graphics.text(this.font, province.displayName(settings.nameFormat), bx + SWATCH + 6, y + 5,
+            graphics.drawString(this.font, province.displayName(settings.nameFormat), bx + SWATCH + 6, y + 5,
                     province.visible() ? COL_TEXT : COL_TEXT_DIM);
             String meta = "L" + province.tier() + " · " + AdminLevels.labelOf(AdminLevels.byKey(province.levelKey()))
                     + " · " + AreaFormat.format(province.shape().measure(), settings.areaInKilo);
             int metaX = Math.max(bx + SWATCH + 48, cX - 8 - this.font.width(meta));
-            graphics.text(this.font, meta, metaX, y + 5, COL_TEXT_DIM);
+            graphics.drawString(this.font, meta, metaX, y + 5, COL_TEXT_DIM);
 
             boolean overSet = Ui.inside(mouseX, mouseY, cX, y + 1, SET_W, ROW_H - 2);
             graphics.fill(cX, y + 1, cX + SET_W, y + ROW_H - 1, overSet ? COL_SET_HOVER : COL_SET);
-            graphics.outline(cX, y + 1, SET_W, ROW_H - 2, COL_EDGE);
-            graphics.centeredText(this.font, "⚙", cX + SET_W / 2, y + 5, COL_TEXT);
+            graphics.renderOutline(cX, y + 1, SET_W, ROW_H - 2, COL_EDGE);
+            graphics.drawCenteredString(this.font, "⚙", cX + SET_W / 2, y + 5, COL_TEXT);
 
             boolean overSub = Ui.inside(mouseX, mouseY, sX, y + 1, SUB_W, ROW_H - 2);
             graphics.fill(sX, y + 1, sX + SUB_W, y + ROW_H - 1, overSub ? COL_SUB_HOVER : COL_SUB);
-            graphics.outline(sX, y + 1, SUB_W, ROW_H - 2, COL_EDGE);
-            graphics.centeredText(this.font, "+", sX + SUB_W / 2, y + 5, COL_TEXT);
+            graphics.renderOutline(sX, y + 1, SUB_W, ROW_H - 2, COL_EDGE);
+            graphics.drawCenteredString(this.font, "+", sX + SUB_W / 2, y + 5, COL_TEXT);
 
             boolean overDelete = Ui.inside(mouseX, mouseY, dX, y + 1, DEL_W, ROW_H - 2);
             graphics.fill(dX, y + 1, dX + DEL_W, y + ROW_H - 1, overDelete ? COL_DEL_HOVER : COL_DEL);
-            graphics.outline(dX, y + 1, DEL_W, ROW_H - 2, COL_EDGE);
-            graphics.centeredText(this.font, "✕", dX + DEL_W / 2, y + 5, COL_TEXT);
+            graphics.renderOutline(dX, y + 1, DEL_W, ROW_H - 2, COL_EDGE);
+            graphics.drawCenteredString(this.font, "✕", dX + DEL_W / 2, y + 5, COL_TEXT);
 
             boolean overGrip = Ui.inside(mouseX, mouseY, gX, y + 1, GRIP_W, ROW_H - 2);
             graphics.fill(gX, y + 1, gX + GRIP_W, y + ROW_H - 1, overGrip ? COL_GRIP_HOVER : COL_GRIP);
-            graphics.outline(gX, y + 1, GRIP_W, ROW_H - 2, COL_EDGE);
-            graphics.centeredText(this.font, "≡", gX + GRIP_W / 2, y + 5, COL_TEXT);
+            graphics.renderOutline(gX, y + 1, GRIP_W, ROW_H - 2, COL_EDGE);
+            graphics.drawCenteredString(this.font, "≡", gX + GRIP_W / 2, y + 5, COL_TEXT);
         }
         graphics.disableScissor();
 
@@ -301,16 +299,16 @@ public class ProvinceTreeScreen extends Screen {
         int fy = footerY();
         Ui.button(graphics, this.font, mouseX, mouseY, footer[0], fy, footer[1], 16, "关闭", false);
         Ui.button(graphics, this.font, mouseX, mouseY, footer[2], fy, NEW_W, 16, "＋ 新建顶级区划", true);
-        graphics.text(this.font, "共 " + this.rows.size() + " 块", footer[2] + NEW_W + 12, fy + 4, COL_TEXT_DIM);
+        graphics.drawString(this.font, "共 " + this.rows.size() + " 块", footer[2] + NEW_W + 12, fy + 4, COL_TEXT_DIM);
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != 0) {
-            return super.mouseClicked(event, doubleClick);
+    public boolean mouseClicked(double mx, double my, int button) {
+        if (button != 0) {
+            return super.mouseClicked(mx, my, button);
         }
-        double mouseX = event.x();
-        double mouseY = event.y();
+        double mouseX = mx;
+        double mouseY = my;
 
         if (this.view.overBar(mouseX, mouseY)) {
             this.view.beginDrag(mouseY);
@@ -379,24 +377,24 @@ public class ProvinceTreeScreen extends Screen {
             return true;
         }
 
-        return super.mouseClicked(event, doubleClick);
+        return super.mouseClicked(mx, my, button);
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
-        if (this.dragIndex >= 0 && event.button() == 0) {
-            dragTo(event.y());
+    public boolean mouseDragged(double x, double y, int button, double dragX, double dragY) {
+        if (this.dragIndex >= 0 && button == 0) {
+            dragTo(y);
             return true;
         }
-        if (this.view.dragging() && event.button() == 0) {
-            this.view.dragTo(event.y());
+        if (this.view.dragging() && button == 0) {
+            this.view.dragTo(y);
             return true;
         }
-        return super.mouseDragged(event, dragX, dragY);
+        return super.mouseDragged(x, y, button, dragX, dragY);
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
+    public boolean mouseReleased(double x, double y, int button) {
         if (this.dragIndex >= 0) {
             this.dragIndex = -1;
             return true;
@@ -405,7 +403,7 @@ public class ProvinceTreeScreen extends Screen {
             this.view.endDrag();
             return true;
         }
-        return super.mouseReleased(event);
+        return super.mouseReleased(x, y, button);
     }
 
     /**
@@ -473,11 +471,11 @@ public class ProvinceTreeScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
         if (this.view.scrollBy(scrollY)) {
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        return super.mouseScrolled(mouseX, mouseY, scrollY);
     }
 
     /** 在某个父区划下面新建一块，然后直接进命名界面。传 {@code null} 就是新建顶级。 */
@@ -499,18 +497,18 @@ public class ProvinceTreeScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
-        if (event.key() == 257 || event.key() == 335) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == 257 || keyCode == 335) {
             onClose();
             return true;
         }
-        return super.keyPressed(event);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
     public void onClose() {
         if (this.parent != null) {
-            this.minecraft.setScreenAndShow(this.parent);
+            this.minecraft.setScreen(this.parent);
         } else {
             super.onClose();
         }

@@ -8,16 +8,16 @@
 
 | 依赖 | 版本 |
 | --- | --- |
-| Minecraft | 26.2 |
+| Minecraft | 1.20.1 |
 | Fabric Loader | 0.19.3 以上 |
-| Java | 25 |
-| Fabric API | 26.2 线（0.157.0+26.2 上测过） |
-| Xaero's World Map | 1.39.0 以上（世界地图叠层和导出地图要用） |
-| Xaero's Minimap | 26.x 线（小地图叠层要用） |
+| Java | 17 |
+| Fabric API | 1.20.1 线（0.92.12+1.20.1 上测过） |
+| Xaero's World Map | 1.39.0 以上（世界地图叠层和导出地图要用；1.20.1 线在 1.47.0 上测过） |
+| Xaero's Minimap | 1.20.1 线（小地图叠层要用；1.20.1 线在 26.6.0 上测过） |
 
 没装 Xaero 也能进游戏，只是地图上看不到区划，编辑模式也打不开。
 
-把 `Province-0.2.1+26.2.jar` 丢进 `.minecraft/mods`。文件名里 `+` 后面是**这个 jar 适配的 Minecraft 版本**（Fabric 模组的通用命名惯例）：以后出了 26.3 的构建，下载页上会同时摆着 `Province-0.2.1+26.2.jar` 和 `Province-0.2.1+26.3.jar`，模组自己的版本号可能一样，挑跟自己的游戏版本对得上的那一个装。装错了会在启动时报错退出，不会静默跑成奇怪的行为。
+把 `Province-0.2.1+1.20.1.jar` 丢进 `.minecraft/mods`。文件名里 `+` 后面是**这个 jar 适配的 Minecraft 版本**（Fabric 模组的通用命名惯例）：同一份源码按游戏版本分支出包（1.20.1 / 1.21.1 / 1.21.11 / 26.2 各一份），模组自己的版本号一样，挑跟自己的游戏版本对得上的那一个装。装错了会在启动时报错退出，不会静默跑成奇怪的行为。
 
 ## 怎么用
 
@@ -209,7 +209,9 @@
 
 ### 世界地图叠层
 
-`mixin/GuiMapMixin` 挂在 Xaero 的世界地图渲染上，把区划按当前地图投影画成色块和边框；同时每帧记一份相机快照，导出时用按下按钮那一帧的视角。
+`client/ProvinceMapHook` 挂在 Xaero 的世界地图上，把区划按当前地图投影画成色块和边框；同时每帧记一份相机快照，导出时用按下按钮那一帧的视角。
+
+这里**没有走 Mixin**，不是偷懒：`xaero.map.gui.GuiMap` 的 `render` 有五千多条指令，Mixin 只要碰了这个类，就会给它整个类重算栈帧，而 1.20.1 / 1.21.1 环境里那套 ASM 会直接抛 `LimitExceededException: Too many operations`，游戏连主界面都进不去（`@Accessor` 一样炸）。所以换成完全不碰 Xaero：用 Fabric 的 `ScreenEvents.AFTER_INIT` 认出地图界面（按类名沿继承链比对，不直接引用类），`ScreenEvents.afterRender` 上叠层，键盘和鼠标各由一个注入到原版 `KeyboardHandler.keyPress` / `MouseHandler.onPress` 的入口转进来，相机参数靠反射读 `cameraX` / `cameraZ` / `scale` / `screenScale`。两点容易踩：`afterRender` 跑在 `Screen.renderWithTooltip` 之后，那一帧 GUI 的顶点早就提交了，新画的必须自己 `graphics.flush()` 才会上屏；还有 `AFTER_INIT` 每次 `init` 都会触发，**不能判重**——从树状图 `setScreen` 回到地图时 GuiMap 会再走一遍 `init`，per-screen 的事件活不过那一趟往返，判重会让图层从此再也不出现。
 
 `client/render/ProvinceRenderer` 负责真正的绘制：填充走扫描线，边框走沿边细分。这是帧率花得最狠的地方，所以：
 
@@ -256,11 +258,16 @@ translateY = pc * offx * zoom + ps * offz * zoom
 
 ### 改代码时的几个坑
 
-这个项目跟的是 Minecraft 26.2 + Fabric，有些 API 是最近才改过名或者挪走的，踩过一次记在这里：
+这一段是 1.20.1 线自己的坑。这份源码是从 26.2 版移植过来的，1.20.1 属于混淆时代的老线，一路上不少 API 跟 26.x 完全不是一回事，踩过一次记在这里：
 
-- **按键分类的 lang 键是单数**：`key.category.mc-province.main`。写成复数 `key.categories.…` 是 1.21 以前 `KeyMapping` 构造函数的写法，26.2 只认单数，写错了界面上会直接显示原始键名。
-- **`Screen` 上没有 `hasShiftDown()` 了**。要判断修饰键就直接问 GLFW：`InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_LSHIFT)`，左右 Shift 各判一次。
-- **`ResourceKey` 取标识用 `identifier()`**，不再是 `location()`。
+- **GUI 类名和绘制方法都换过**：26.x 的 `GuiGraphicsExtractor` 在 1.20.1 叫 `GuiGraphics`；26.x 上的 `text` / `centeredText` / `outline` 在这里分别叫 `drawString` / `drawCenteredString` / `renderOutline`，界面重绘入口也从 `extractRenderState` 回到 `render(GuiGraphics, int, int, float)`（背景是 `renderBackground(GuiGraphics)`，只有一个参数的重载）。
+- **没有 `KeyEvent` / `MouseButtonEvent`**：输入事件回到原始签名 `keyPressed(int, int, int)`、`mouseClicked(double, double, int)`、`mouseDragged(double, double, int, double, double)`、`mouseReleased(double, double, int)`。
+- **按键注册走 `KeyBindingHelper`**：`KeyMapping.Category.register` + `KeyMappingHelper` 是后来的线才有的；1.20.1 用 `new KeyMapping(name, InputConstants.Type.KEYSYM, key, "key.category.mc-province.main")` 配 `KeyBindingHelper.registerKeyBinding(...)`，分类名是普通字符串。
+- **标识符写成 `new ResourceLocation(namespace, path)`**，没有 `Identifier.fromNamespaceAndPath` / `withDefaultNamespace`。
+- **NBT 只能走 File**：`NbtIo.readCompressed(Path, NbtAccounter)` / `writeCompressed(CompoundTag, Path)` 在 1.20.1 不存在，只有 `readCompressed(File)` / `writeCompressed(CompoundTag, File)`，读的时候也就没有 `NbtAccounter` 的限额保护。`CompoundTag` 同样没有 `getIntOr` / `getStringOr` / `getBooleanOr` 这一套，改用 `contains(key[, type])` 自己兜底。
+- **`Screen` 上没有 `hasShiftDown()` 了**。要判断修饰键就直接问 GLFW：`InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), InputConstants.KEY_LSHIFT)`，左右 Shift 各判一次。
+- **Xaero 小地图的绘制入口不一样**：26.x 用 `MinimapElementGraphics` 画进 FBO，而 1.20.1 线的 Xaero 小地图（26.6.0）里没有这个类；改成注入 `MinimapElementRendererHandler.render(GuiGraphics, Vec3, float, RenderTarget, double, ResourceKey)`，拿首参 `GuiGraphics` 直接画（`fill(int, int, int, int, int)` 签名一致，`ProvinceRenderer` 那套扫描线原样能用）。
+- **Xaero 的 jar 必须用 `modCompileOnly`**：1.x 线第三方模组 jar 里是 intermediary 名（`net.minecraft.class_243` 之类），写成 `compileOnly` 会报「无法访问 class_xxx」；只有 `mod*` 开头的依赖配置会被 loom 重新映射成官方名。
 - **`EditSession.onRelease()` 是无参的**，早期版本带一个坐标参数。
 - **`VectorShape` 自带 `contains(double, double)`**，判断点是否落在形状里不用先取 `Area`。
 - **`CompoundTag` 没有 `getIntArrayOr(String, int[])`**。要往 NBT 里存一组 int，用逗号分隔的 `String` 最省事（`collapsed` 就是这么存的）。
@@ -294,7 +301,7 @@ gradlew.bat build
 ./gradlew build
 ```
 
-产物是 `build/libs/Province-0.2.1+26.2.jar`。
+产物是 `build/libs/Province-0.2.1+1.20.1.jar`。
 
 版本号与 MC 版本都在 `gradle.properties` 里：`mod_version` 是模组自己的版本，`minecraft_version` 是适配的游戏版本，`build.gradle` 只负责把它们拼成 `Province-<mod_version>+<minecraft_version>.jar`。要出别的游戏版本的构建，改 `minecraft_version`（以及 `fabric_api_version` 那条对应的线）重编即可，产物名会自动跟着变。
 
@@ -310,7 +317,7 @@ src/main/java/com/mcprovince/
   client/                    快捷键、编辑状态、设置、导出、像素字
   client/gui/                区划树、命名、新增级别名、设置四个界面，外加共用的 Ui 与 ScrollViewport
   client/render/             世界地图叠层、小地图叠层、绘制器、投影
-  mixin/                     Xaero 世界地图与小地图的注入点
+  mixin/                     小地图元素与键鼠入口的注入点（世界地图刻意不碰 Mixin）
 src/main/resources/
   fabric.mod.json
   mc-province.mixins.json

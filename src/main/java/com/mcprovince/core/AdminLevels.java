@@ -3,7 +3,6 @@ package com.mcprovince.core;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -293,13 +292,13 @@ public final class AdminLevels {
             return;
         }
         try {
-            CompoundTag tag = NbtIo.readCompressed(path, NbtAccounter.defaultQuota());
-            ListTag list = tag.getListOrEmpty("levels");
+            CompoundTag tag = NbtIo.readCompressed(path.toFile());
+            ListTag list = tag.getList("levels", 10);
             for (int i = 0; i < list.size(); i++) {
-                CompoundTag entry = list.getCompoundOrEmpty(i);
-                String key = entry.getStringOr("key", "");
-                String zh = entry.getStringOr("zh", "");
-                String en = entry.getStringOr("en", "");
+                CompoundTag entry = list.getCompound(i);
+                String key = (entry.contains("key") ? entry.getString("key") : "");
+                String zh = (entry.contains("zh") ? entry.getString("zh") : "");
+                String en = (entry.contains("en") ? entry.getString("en") : "");
                 if (key.isEmpty() || zh.isEmpty()) {
                     continue;
                 }
@@ -333,7 +332,7 @@ public final class AdminLevels {
             if (parent != null) {
                 Files.createDirectories(parent);
             }
-            NbtIo.writeCompressed(tag, path);
+            NbtIo.writeCompressed(tag, path.toFile());
         } catch (IOException e) {
             LOGGER.error("保存自定义级别名失败：{}", path, e);
         }

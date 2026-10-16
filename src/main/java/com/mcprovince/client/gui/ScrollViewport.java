@@ -1,6 +1,6 @@
 package com.mcprovince.client.gui;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 
 /**
  * 一列可滚动的行内容共用的视口。
@@ -133,7 +133,7 @@ final class ScrollViewport {
     }
 
     /** 画轨道与滑块；颜色由各页自己定，保持各自的配色。 */
-    void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
+    void draw(GuiGraphics graphics, int mouseX, int mouseY,
             int trackColor, int thumbColor, int thumbHotColor) {
         if (!visible()) {
             return;

@@ -7,7 +7,6 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
@@ -107,7 +106,9 @@ public final class ProvinceData {
             return;
         }
         try {
-            CompoundTag tag = NbtIo.readCompressed(this.file, NbtAccounter.defaultQuota());
+            // 1.20.1 的 NbtIo 只有 File 重载，没有 26.x 的 NbtAccounter 大小上限；
+            // 存档是本模组自己写的本地文件，这里按不限额读。
+            CompoundTag tag = NbtIo.readCompressed(this.file.toFile());
             boolean legacy = ProvinceNbt.read(tag, this.store);
             LOGGER.info("载入 {} 个行政区划（{}）", this.store.size(), this.worldKey);
             if (legacy) {
@@ -136,7 +137,7 @@ public final class ProvinceData {
             if (parent != null) {
                 Files.createDirectories(parent);
             }
-            NbtIo.writeCompressed(ProvinceNbt.write(this.store), this.file);
+            NbtIo.writeCompressed(ProvinceNbt.write(this.store), this.file.toFile());
             this.dirty = false;
         } catch (IOException e) {
             LOGGER.error("保存行政区划数据失败：{}", this.file, e);
@@ -165,7 +166,7 @@ public final class ProvinceData {
         }
         IntegratedServer integrated = minecraft.getSingleplayerServer();
         if (integrated != null) {
-            Path directory = integrated.getServerDirectory();
+            Path directory = integrated.getServerDirectory().toPath();
             if (directory != null && directory.getFileName() != null) {
                 return "world_" + sanitize(directory.getFileName().toString());
             }
@@ -179,7 +180,7 @@ public final class ProvinceData {
         if (level == null) {
             return "unknown";
         }
-        return sanitize(level.dimension().identifier().toString());
+        return sanitize(level.dimension().location().toString());
     }
 
     private static String sanitize(String raw) {

@@ -21,6 +21,7 @@ public final class ProvinceClient {
     public static void init() {
         ProvinceSettings.get().load();
         ProvinceKeys.register();
+        ProvinceMapHook.register();
         ClientTickEvents.END_CLIENT_TICK.register(ProvinceClient::onEndTick);
     }
 
