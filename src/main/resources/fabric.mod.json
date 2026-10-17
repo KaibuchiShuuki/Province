@@ -4,20 +4,30 @@
   "version": "${version}",
   "name": "Province",
   "description": "在 Minecraft 世界里划定自己的行政区划，并作为矢量图层叠在 Xaero 的世界地图上。",
-  "authors": ["Shuuki_"],
+  "authors": [
+    "Shuuki_"
+  ],
   "license": "MIT",
+  "contact": {
+    "homepage": "https://github.com/KaibuchiShuuki/Province",
+    "issues": "https://github.com/KaibuchiShuuki/Province/issues"
+  },
   "icon": "assets/mc-province/icon.png",
   "environment": "client",
   "entrypoints": {
-    "main": ["com.mcprovince.McProvince"],
-    "client": ["com.mcprovince.McProvince"]
+    "main": [
+      "com.mcprovince.McProvince"
+    ],
+    "client": [
+      "com.mcprovince.McProvince"
+    ]
   },
   "mixins": [
     "mc-province.mixins.json",
     "mc-province.minimap.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.19.3",
+    "fabricloader": ">=0.15.0",
     "minecraft": "~1.20.1",
     "java": ">=17",
     "fabric-api": "*",
