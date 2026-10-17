@@ -6,6 +6,10 @@
   "description": "在 Minecraft 世界里划定自己的行政区划，并作为矢量图层叠在 Xaero 的世界地图上。",
   "authors": ["Shuuki_"],
   "license": "MIT",
+  "contact": {
+    "homepage": "https://github.com/KaibuchiShuuki/Province",
+    "issues": "https://github.com/KaibuchiShuuki/Province/issues"
+  },
   "icon": "assets/mc-province/icon.png",
   "environment": "client",
   "entrypoints": {

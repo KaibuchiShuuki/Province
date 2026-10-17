@@ -4,7 +4,8 @@
   "package": "com.mcprovince.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "GuiMapMixin"
+    "KeyboardInputMixin",
+    "MouseInputMixin"
   ],
   "injectors": {
     "defaultRequire": 1
