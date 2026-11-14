@@ -86,7 +86,95 @@ public final class ProvinceRenderer {
      */
     private static final double MAX_STROKE_STEP_SCALE = 3.0;
 
+    /**
+     * 智能降精度时，边界吸附网格的门限（每方块屏幕像素数）。
+     *
+     * <p>0.2.3 起，「智能」不再只是把扫描线隔行、把短边并掉——它还会把边界整体吸附到
+     * 越来越粗的网格上：单格 → 4×4 方块 → 一个区块（16×16）。
+     * 量化之后相邻顶点大量重合，零长度的边直接被丢掉，边数按吸附步长成比例往下掉，
+     * 缩到最小也扫得动。</p>
+     *
+     * <p>门限取「这一级网格在屏幕上还剩 0.5 像素」：每方块 0.5 像素以上还是单格，0.125 像素
+     * 以上并到 4 格，再往下就一直是区块。门限压得比较低，是因为吸附会丢精度，能看清的时候
+     * 就别动它——0.2.3 最初取 1 和 0.25，刚缩一点就变粗，太急了。</p>
+     *
+     * <p>区块（16 格）是最粗的一档。再并到 4×4 区块只剩轮廓，没有必要，也不再往下走。</p>
+     */
+    private static final double SNAP_ONE_MIN_PIXELS_PER_BLOCK = 0.5;
+    private static final double SNAP_FOUR_MIN_PIXELS_PER_BLOCK = 0.125;
+
     private ProvinceRenderer() {
+    }
+
+    /**
+     * 这一帧的吸附步长（方块数）；{@code 1} 表示不吸附。
+     *
+     * <p>只有开了智能档才会走到这里。关掉智能的调用方直接传 {@code 1}，行为与 0.2.2 一致。</p>
+     */
+    public static int snapStep(double pixelsPerBlock) {
+        if (!(pixelsPerBlock > 0.0)) {
+            return 16;
+        }
+        if (pixelsPerBlock >= SNAP_ONE_MIN_PIXELS_PER_BLOCK) {
+            return 1;
+        }
+        if (pixelsPerBlock >= SNAP_FOUR_MIN_PIXELS_PER_BLOCK) {
+            return 4;
+        }
+        return 16;
+    }
+
+    /**
+     * 按当前缩放挑一层吸附网格，返回包好的投影；不需要吸附时把传进来的原样还回去。
+     *
+     * <p>编辑态那些高亮色块（父级、同级、正在画的面）也得用同一个包装，不然它们的边跟
+     * 正式边框会差半格——缩得越小越明显，看着就像填充和边框对不上。</p>
+     */
+    public static Projection snap(Projection projection, double pixelsPerBlock) {
+        if (projection == null || !ProvinceSettings.get().smartPrecision()) {
+            return projection;
+        }
+        int grid = snapStep(pixelsPerBlock);
+        return grid > 1 ? new SnappedProjection(projection, grid) : projection;
+    }
+
+    /** 这个投影下每方块占多少屏幕像素。自己算一遍，省得每个调用方各写一份。 */
+    public static double pixelsPerBlock(Projection projection) {
+        return projection == null ? 0.0
+                : Math.abs(projection.screenX(1.0, 0.0) - projection.screenX(0.0, 0.0));
+    }
+
+    /**
+     * 先把世界坐标吸到 {@code step} 格网格上再投影的包装。
+     *
+     * <p>反向那两条（{@link #worldX}／{@link #worldZ}）原样透传：它们只用来算裁剪包围盒，
+     * 拿量化后的矩形去反投影只会偏得更远。</p>
+     */
+    private record SnappedProjection(Projection inner, double step) implements Projection {
+
+        private double snap(double value) {
+            return Math.round(value / step) * step;
+        }
+
+        @Override
+        public double screenX(double worldX, double worldZ) {
+            return inner.screenX(snap(worldX), snap(worldZ));
+        }
+
+        @Override
+        public double screenY(double worldX, double worldZ) {
+            return inner.screenY(snap(worldX), snap(worldZ));
+        }
+
+        @Override
+        public double worldX(double screenX, double screenY) {
+            return inner.worldX(screenX, screenY);
+        }
+
+        @Override
+        public double worldZ(double screenX, double screenY) {
+            return inner.worldZ(screenX, screenY);
+        }
     }
 
     /**
@@ -152,6 +240,20 @@ public final class ProvinceRenderer {
         double worldMaxX = worldClip[2];
         double worldMaxZ = worldClip[3];
 
+        // 0.2.3：智能档把边界吸到粗网格上（1→4→16 格）。关掉智能档时 step 恒为 1，
+        // 包装也不建，送进投影的还是原坐标，行为与 0.2.2 一模一样。
+        // 编辑态也吸附：渲染与编辑器预览必须走同一套网格，不然填充和边框会差半格。
+        int snapGrid = settings.smartPrecision() ? snapStep(pixelsPerBlock) : 1;
+        Projection drawProjection = snapGrid > 1 ? new SnappedProjection(projection, snapGrid) : projection;
+        if (snapGrid > 1) {
+            // 吸附最多把形状往外挪半格，可见性判断的包围盒跟着放宽，免得边上的区划被误剔。
+            double pad = snapGrid / 2.0;
+            worldMinX -= pad;
+            worldMinZ -= pad;
+            worldMaxX += pad;
+            worldMaxZ += pad;
+        }
+
         boolean filled = settings.showFilled && pixelsPerBlock >= MIN_FILL_PIXELS_PER_BLOCK;
         int fillAlpha = settings.fillAlphaByte() << 24;
         boolean stroked = settings.borderStyle != BorderStyle.OFF;
@@ -160,13 +262,13 @@ public final class ProvinceRenderer {
         if (named) {
             // 序号标记得先知道「这一帧谁没把名字画上屏幕」，所以从这里从零开始记。
             // 小地图那条路（named = false）不碰这个标记，免得把世界地图刚记好的结果冲掉。
-            for (Province province : store.allSorted()) {
+            for (Province province : store.renderOrder()) {
                 province.setNameDrawn(false);
             }
         }
 
         // 第一遍只铺色块和边框。
-        for (Province province : store.allSorted()) {
+        for (Province province : store.renderOrder()) {
             if (!inView(province, onlyTier, worldMinX, worldMinZ, worldMaxX, worldMaxZ)) {
                 continue;
             }
@@ -175,12 +277,12 @@ public final class ProvinceRenderer {
             // 「每条边与水平线的交点 x」，这个 x 本来就可以落在屏幕外（提交命令前才夹回来）。
             // 左右一起裁掉的话，屏幕外的边会整条消失，交点少配一对，屏幕上就露出一条没填到的横缝。
             if (filled) {
-                projectEdgesForFill(projection, province.shape().segments(), clipMinY, clipMaxY);
+                projectEdgesForFill(drawProjection, province.shape().segments(), clipMinY, clipMaxY);
                 fillProjected(sink, fillAlpha | (province.color() & 0xFFFFFF), pixelsPerBlock,
                         clipMinX, clipMinY, clipMaxX, clipMaxY, settings.smartFill);
             }
             if (stroked) {
-                projectEdges(projection, province.shape().segments(), clipMinX, clipMinY, clipMaxX, clipMaxY,
+                projectEdges(drawProjection, province.shape().segments(), clipMinX, clipMinY, clipMaxX, clipMaxY,
                         settings.smartStroke ? MIN_EDGE_PIXELS : 0.0);
                 strokeProjected(sink, province.color(), settings.borderWidthPixels(), settings.borderStyle,
                         clipMinX, clipMinY, clipMaxX, clipMaxY, MAX_STROKE_DOTS,
@@ -192,7 +294,7 @@ public final class ProvinceRenderer {
         if (named) {
             // 名字单独走第二遍：色块和边框全铺完了再写字。要是混在第一遍里，先画的那块的名字
             // 会被后画的邻居色块盖住——层级越低的区划越容易被压住。
-            for (Province province : store.allSorted()) {
+            for (Province province : store.renderOrder()) {
                 if (!inView(province, onlyTier, worldMinX, worldMinZ, worldMaxX, worldMaxZ)) {
                     continue;
                 }
@@ -293,6 +395,10 @@ public final class ProvinceRenderer {
             double ay = projection.screenY(s[0], s[1]);
             double bx = projection.screenX(s[2], s[3]);
             double by = projection.screenY(s[2], s[3]);
+            if (ax == bx && ay == by) {
+                // 网格吸附会把一段台阶压成两个重合的端点；这种边扫不出交点，直接丢。
+                continue;
+            }
             if (!clipSegment(ax, ay, bx, by, left, top, right, bottom)) {
                 pendingX = Double.NaN;
                 pendingY = Double.NaN;
@@ -342,6 +448,10 @@ public final class ProvinceRenderer {
             double ay = projection.screenY(s[0], s[1]);
             double bx = projection.screenX(s[2], s[3]);
             double by = projection.screenY(s[2], s[3]);
+            if (ax == bx && ay == by) {
+                // 网格吸附会把一段台阶压成两个重合的端点；这种边扫不出交点，直接丢。
+                continue;
+            }
             if (!clipVertically(ax, ay, bx, by, top, bottom)) {
                 continue;
             }

@@ -70,6 +70,17 @@ public final class ProvinceSettings {
      * 代价是轮廓一复杂就卡。</p>
      */
     public boolean smartStroke;
+
+    /**
+     * 智能降精度总开关：上面两个开关任开一个就算开着。
+     *
+     * <p>0.2.3 起，「智能」除了隔行采样、并短边，还会把边界吸附到越来越粗的网格上
+     * （单格 → 4×4 方块 → 一个区块 → 4×4 区块），见
+     * {@code ProvinceRenderer#snapStep(double)}。两个都关掉时吸附步长恒为 1，和 0.2.2 一致。</p>
+     */
+    public boolean smartPrecision() {
+        return smartFill || smartStroke;
+    }
     /** 选区笔 / 选区擦在屏幕上的粗细（像素）。只影响这两个工具。 */
     public int brushPixels = 9;
     /**

@@ -221,7 +221,7 @@ public final class ProvinceEditor {
             return;
         }
         int tier = ProvinceSettings.get().shownTier;
-        for (Province province : store.allSorted()) {
+        for (Province province : store.renderOrder()) {
             province.setVisible(province.tier() == tier);
         }
     }
