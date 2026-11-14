@@ -8,16 +8,16 @@
 
 | 依赖 | 版本 |
 | --- | --- |
-| Minecraft | 26.2 |
-| Fabric Loader | 0.19.3 以上 |
+| Minecraft | 26.3 |
+| Fabric Loader | 0.20.1 以上 |
 | Java | 25 |
-| Fabric API | 26.2 线（0.157.0+26.2 上测过） |
-| Xaero's World Map | 1.39.0 以上（世界地图叠层和导出地图要用） |
-| Xaero's Minimap | 26.x 线（小地图叠层要用） |
+| Fabric API | 26.3 线（0.164.0+26.3 上测过） |
+| Xaero's World Map | 1.47.0 以上（世界地图叠层和导出地图要用） |
+| Xaero's Minimap | 26.6.0 以上（26.x 线，小地图叠层要用） |
 
 没装 Xaero 也能进游戏，只是地图上看不到区划，编辑模式也打不开。
 
-把 `Province-0.2.3+26.2.jar` 丢进 `.minecraft/mods`。文件名里 `+` 后面是**这个 jar 适配的 Minecraft 版本**（Fabric 模组的通用命名惯例）：以后出了 26.3 的构建，下载页上会同时摆着 `Province-0.2.3+26.2.jar` 和 `Province-0.2.1+26.3.jar`，模组自己的版本号可能一样，挑跟自己的游戏版本对得上的那一个装。装错了会在启动时报错退出，不会静默跑成奇怪的行为。
+把 `Province-0.2.3+26.3.jar` 丢进 `.minecraft/mods`。文件名里 `+` 后面是**这个 jar 适配的 Minecraft 版本**（Fabric 模组的通用命名惯例）：同一个模组版本会为每条 MC 线各出一个 jar（26.3、26.2、26.1.2、1.21.11、1.21.1、1.20.1），模组自己的版本号一样，挑跟自己的游戏版本对得上的那一个装。装错了会在启动时报错退出，不会静默跑成奇怪的行为。
 
 ## 怎么用
 
@@ -224,7 +224,7 @@
 
 ### 世界地图叠层
 
-`mixin/GuiMapMixin` 挂在 Xaero 的世界地图渲染上，把区划按当前地图投影画成色块和边框；同时每帧记一份相机快照，导出时用按下按钮那一帧的视角。
+`client/ProvinceMapHook` 通过 Fabric API 的 `ScreenEvents` 钩住世界地图界面（不再 Mixin `GuiMap`——Fabric Loader 0.20 起，那个类会被新版 ASM 拒绝转换），用反射读相机位置与缩放，把区划按当前地图投影画成色块和边框；同时每帧记一份相机快照，导出时用按下按钮那一帧的视角。
 
 `client/render/ProvinceRenderer` 负责真正的绘制：填充走扫描线，边框走沿边细分。这是帧率花得最狠的地方，所以：
 
@@ -271,7 +271,7 @@ translateY = pc * offx * zoom + ps * offz * zoom
 - **边界断裂**：一块区划可能是好几座互不相连的岛（飞地、海外部分），以前把所有线段堆成一条路径只闭合一次，两座岛之间会被连出一条假边，看着就像边界漏了一段。现在按 `components()` 一座岛一条子路径、各自闭合，端点用 1e-6 容差接，不再被浮点误差切碎。
 - **地名糊成一团**：字号下限提到 2 倍、上限放到 24 倍，并且同一张图上已经落墨的名牌会占位，后来的撞上就让位——小地块挤在一起时不再全画上去叠成一坨。
 
-地名用 `client/PixelFont` 画。它是纯 CPU 的（`java.awt`，不碰 OpenGL），字形来自客户端资源包：ASCII 取 `textures/font/ascii.png`，其它字符取 `font/unifont.zip`，度量照抄原版 `BitmapProvider` 和 `UnihexProvider`。
+地名用系统字体画（`java.awt.Font`，从一个候选列表里挑一个中文能认的，挑不到再退回逻辑字体）。纯 CPU 的 `java.awt`，不碰 OpenGL。
 
 导出是同步阻塞的（几秒），所以按下按钮那一帧只把「正在导出…」推上屏，下一帧才真开跑。
 
@@ -281,10 +281,13 @@ translateY = pc * offx * zoom + ps * offz * zoom
 
 ### 改代码时的几个坑
 
-这个项目跟的是 Minecraft 26.2 + Fabric，有些 API 是最近才改过名或者挪走的，踩过一次记在这里：
+这个项目跟的是 Minecraft 26.3 + Fabric，26.3 这一版换掉了不少输入和老工具类，踩过一次记在这里：
 
-- **按键分类的 lang 键是单数**：`key.category.mc-province.main`。写成复数 `key.categories.…` 是 1.21 以前 `KeyMapping` 构造函数的写法，26.2 只认单数，写错了界面上会直接显示原始键名。
-- **`Screen` 上没有 `hasShiftDown()` 了**。要判断修饰键就直接问 GLFW：`InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_LSHIFT)`，左右 Shift 各判一次。
+- **`org.lwjgl.glfw` 整个包没在编译类路径上了**。`GLFW_KEY_*` 与 `GLFW_PRESS/RELEASE/REPEAT` 全换成 `com.mojang.blaze3d.platform.InputConstants` 的 `KEY_P / KEY_R / KEY_ESCAPE / KEY_LSHIFT / KEY_RSHIFT` 与 `PRESS / RELEASE / REPEAT`。注意 26.3 的键码是 **scancode**（`KEY_P = 19`、`KEY_ESCAPE = 41`），不是 26.2 的 GLFW keycode（`GLFW_KEY_P = 80`、`GLFW_KEY_ESCAPE = 256`），两边的数字完全对不上。
+- **`InputConstants.Type` 只剩 `KEYBOARD` 和 `MOUSE`**，`KEYSYM` 没了；`isKeyDown` 只接一个键码，不再要 `Window`。
+- **鼠标按钮编号全变了**：`MOUSE_BUTTON_LEFT` 是 1（26.2 是 GLFW 的 0），中键 2、右键 3。所有 `button != 0` 的写法必须换成命名常量，否则左键会被当成「不是左键」放行，点击直接落到下面的地图上。
+- **`Util.getPlatform().openPath(...)` 没了**，导出完打开文件夹改用 `java.awt.Desktop.getDesktop().open(...toFile())`。
+- **按键分类的 lang 键仍是单数**：`key.category.mc-province.main`。写成复数 `key.categories.…` 是 1.21 以前的写法，写错了界面上会直接显示原始键名。
 - **`ResourceKey` 取标识用 `identifier()`**，不再是 `location()`。
 - **`EditSession.onRelease()` 是无参的**，早期版本带一个坐标参数。
 - **`VectorShape` 自带 `contains(double, double)`**，判断点是否落在形状里不用先取 `Area`。
@@ -319,7 +322,7 @@ gradlew.bat build
 ./gradlew build
 ```
 
-产物是 `build/libs/Province-0.2.3+26.2.jar`。
+产物是 `build/libs/Province-0.2.3+26.3.jar`。
 
 版本号与 MC 版本都在 `gradle.properties` 里：`mod_version` 是模组自己的版本，`minecraft_version` 是适配的游戏版本，`build.gradle` 只负责把它们拼成 `Province-<mod_version>+<minecraft_version>.jar`。要出别的游戏版本的构建，改 `minecraft_version`（以及 `fabric_api_version` 那条对应的线）重编即可，产物名会自动跟着变。
 
