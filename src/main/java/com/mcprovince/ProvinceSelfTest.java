@@ -148,7 +148,10 @@ public final class ProvinceSelfTest {
         }
         if (autoWorldStage == 2 && autoWorldTicks == 260) {
             McProvince.LOGGER.info("[autoworld] 截图");
-            Screenshot.grab(minecraft, false);
+            java.io.File shotDir = new java.io.File(minecraft.gameDirectory, "screenshots");
+            shotDir.mkdirs();
+            Screenshot.grab(new java.io.File(shotDir, "autoworld-" + System.currentTimeMillis() + ".png"),
+                    minecraft.getMainRenderTarget(), c -> { });
             autoWorldStage = 3;
         }
         if (autoWorldStage == 3 && autoWorldTicks > 340) {

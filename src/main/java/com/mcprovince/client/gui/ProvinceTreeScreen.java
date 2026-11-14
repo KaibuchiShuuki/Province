@@ -1,7 +1,5 @@
 package com.mcprovince.client.gui;
 
-import com.mojang.blaze3d.platform.InputConstants;
-
 import com.mcprovince.client.ProvinceEditor;
 import com.mcprovince.client.ProvinceSettings;
 import com.mcprovince.core.AdminLevels;
@@ -89,7 +87,7 @@ public class ProvinceTreeScreen extends Screen {
     /** 从当前打开着的界面跳进树状图。 */
     public static void open() {
         Minecraft minecraft = Minecraft.getInstance();
-        Screen parent = minecraft.gui == null ? null : minecraft.gui.screen();
+        Screen parent = minecraft.screen;
         minecraft.setScreenAndShow(new ProvinceTreeScreen(parent));
     }
 
@@ -308,7 +306,7 @@ public class ProvinceTreeScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
+        if (event.button() != 0) {
             return super.mouseClicked(event, doubleClick);
         }
         double mouseX = event.x();
@@ -386,11 +384,11 @@ public class ProvinceTreeScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
-        if (this.dragIndex >= 0 && event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
+        if (this.dragIndex >= 0 && event.button() == 0) {
             dragTo(event.y());
             return true;
         }
-        if (this.view.dragging() && event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
+        if (this.view.dragging() && event.button() == 0) {
             this.view.dragTo(event.y());
             return true;
         }

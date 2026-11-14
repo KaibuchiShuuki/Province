@@ -22,7 +22,7 @@
   ],
   "depends": {
     "fabricloader": ">=0.15.0",
-    "minecraft": "~26.3",
+    "minecraft": "~26.1.2",
     "java": ">=25",
     "fabric-api": "*",
     "xaeroworldmap": ">=1.39.0"

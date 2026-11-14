@@ -1,7 +1,5 @@
 package com.mcprovince.client.gui;
 
-import com.mojang.blaze3d.platform.InputConstants;
-
 import com.mcprovince.client.ProvinceEditor;
 import com.mcprovince.client.ProvinceSettings;
 
@@ -459,11 +457,11 @@ public class ProvinceSettingsScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
-        if (this.sliding != null && event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
+        if (this.sliding != null && event.button() == 0) {
             slide(this.sliding, event.x());
             return true;
         }
-        if (this.view.dragging() && event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
+        if (this.view.dragging() && event.button() == 0) {
             this.view.dragTo(event.y());
             return true;
         }

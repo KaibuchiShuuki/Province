@@ -360,7 +360,7 @@ public final class ProvinceMapOverlay {
 
         // 第三种导出：自己填四个角。打开的是独立输入页，确认后回到这张地图导。
         out.add(new Widget(x, y, innerW, ROW, () -> "导出指定范围地图…",
-                () -> ProvinceExportRangeScreen.open(Minecraft.getInstance().gui.screen()), null, true));
+                () -> ProvinceExportRangeScreen.open(Minecraft.getInstance().screen), null, true));
         y += ROW + GAP;
 
         out.add(new Widget(x, y, colW, ROW, () -> "设置",
@@ -372,7 +372,7 @@ public final class ProvinceMapOverlay {
     }
 
     private static void openSettings() {
-        ProvinceSettingsScreen.open(Minecraft.getInstance().gui.screen());
+        ProvinceSettingsScreen.open(Minecraft.getInstance().screen);
     }
 
     /** 每帧推一下导出请求；跑完的那一次顺手把结果写进编辑面板的状态栏。 */
@@ -414,9 +414,7 @@ public final class ProvinceMapOverlay {
     public static boolean onMousePressed(double mouseX, double mouseY, int button, int guiWidth, int guiHeight,
             double cameraX, double cameraZ, double scale, double screenScale,
             double windowWidth, double windowHeight) {
-        // 26.3 的 MouseButtonInfo 用 InputConstants.MOUSE_BUTTON_* 编号（左键 = 1），
-        // 不再是 GLFW 的 0/1/2。
-        if (button != InputConstants.MOUSE_BUTTON_LEFT) {
+        if (button != 0) {
             return false;
         }
         // 编辑模式只剩快捷键一个入口（默认 P，见 ProvinceKeys），地图上不放按钮了。
@@ -438,7 +436,7 @@ public final class ProvinceMapOverlay {
     }
 
     public static boolean onMouseReleased(int button) {
-        if (button != InputConstants.MOUSE_BUTTON_LEFT || !ProvinceEditor.isActive()) {
+        if (button != 0 || !ProvinceEditor.isActive()) {
             return false;
         }
         ProvinceEditor.onRelease();
@@ -463,8 +461,8 @@ public final class ProvinceMapOverlay {
     private static boolean shiftDown() {
         Window window = Minecraft.getInstance().getWindow();
         return window != null
-                && (InputConstants.isKeyDown(InputConstants.KEY_LSHIFT)
-                        || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT));
+                && (InputConstants.isKeyDown(window, InputConstants.KEY_LSHIFT)
+                        || InputConstants.isKeyDown(window, InputConstants.KEY_RSHIFT));
     }
 
     private static boolean isOverPanel(double mouseX, double mouseY) {

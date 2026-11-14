@@ -1,7 +1,5 @@
 package com.mcprovince.client.gui;
 
-import com.mojang.blaze3d.platform.InputConstants;
-
 import com.mcprovince.client.MapExporter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -140,7 +138,7 @@ public class ProvinceExportRangeScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
+        if (event.button() != 0) {
             return super.mouseClicked(event, doubleClick);
         }
         double mouseX = event.x();

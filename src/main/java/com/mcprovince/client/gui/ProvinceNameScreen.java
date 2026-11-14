@@ -1,7 +1,5 @@
 package com.mcprovince.client.gui;
 
-import com.mojang.blaze3d.platform.InputConstants;
-
 import com.mcprovince.client.ProvinceEditor;
 import com.mcprovince.core.AdminLevels;
 import com.mcprovince.core.Province;
@@ -86,7 +84,7 @@ public class ProvinceNameScreen extends Screen {
 
     public static void open() {
         Minecraft minecraft = Minecraft.getInstance();
-        Screen parent = minecraft.gui == null ? null : minecraft.gui.screen();
+        Screen parent = minecraft.screen;
         minecraft.setScreenAndShow(new ProvinceNameScreen(parent, Province.NO_PARENT));
     }
 
@@ -344,7 +342,7 @@ public class ProvinceNameScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
+        if (event.button() != 0) {
             return super.mouseClicked(event, doubleClick);
         }
         double mouseX = event.x();
