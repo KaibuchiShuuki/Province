@@ -66,9 +66,10 @@ public final class AdminLevels {
         add("autonomous_region", "自治区", "Autonomous Region", "中");
         add("sar", "特别行政区", "Special Administrative Region");
         add("prefecture", "地区", "Prefecture", "中");
-        add("prefecture_city", "地级市", "Prefecture-level City");
+        // 括号里的限定语只在级别列表里出现；拼到地名上时只带「市」，见 NameFormat。
+        add("prefecture_city", "（地级）市", "(Prefecture-level) City");
         add("city", "市", "City", "中");
-        add("county_level_city", "县级市", "County-level City");
+        add("county_level_city", "（县级）市", "(County-level) City");
         add("county", "县", "County", "中");
         add("district", "区", "District", "中");
         add("autonomous_county", "自治县", "Autonomous County");
@@ -79,6 +80,21 @@ public final class AdminLevels {
         add("township", "乡", "Township", "中");
         add("community", "社区", "Community");
         add("village", "村", "Village", "中");
+        // ——— 特别建制 / 海外 ———
+        add("overseas_province", "海外省", "Overseas Province");
+        add("overseas_territory", "海外领地", "Overseas Territory");
+        add("overseas_department", "海外省", "Overseas Department", "法");
+        add("special_zone", "特区", "Special Zone");
+        add("economic_zone", "经济特区", "Special Economic Zone");
+        add("autonomous_prefecture", "自治州", "Autonomous Prefecture");
+        add("autonomous_banner", "自治旗", "Autonomous Banner");
+        add("autonomous_city", "自治市", "Autonomous City");
+        add("ethnic_township", "民族乡", "Ethnic Township");
+        add("sumu", "苏木", "Sumu", "蒙");
+        add("manage_area", "管理区", "Management Area");
+        add("constituent_country", "构成国", "Constituent Country");
+        add("dependency", "附庸地", "Dependency");
+        add("vassal", "属国", "Vassal");
         // ——— 中国古代 ———
         add("empire", "帝国", "Empire");
         add("kingdom", "王国", "Kingdom");

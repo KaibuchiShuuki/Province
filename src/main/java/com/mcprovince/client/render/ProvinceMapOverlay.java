@@ -5,6 +5,7 @@ import com.mcprovince.client.ProvinceClient;
 import com.mcprovince.client.ProvinceEditor;
 import com.mcprovince.client.ProvinceSettings;
 import com.mcprovince.client.SerialCorner;
+import com.mcprovince.client.gui.ProvinceExportRangeScreen;
 import com.mcprovince.client.gui.ProvinceSettingsScreen;
 import com.mcprovince.client.gui.ProvinceTreeScreen;
 import com.mcprovince.core.Province;
@@ -122,7 +123,7 @@ public final class ProvinceMapOverlay {
         // 跟 ProvinceRenderer 同一套过滤：编辑的时候屏幕上只有正在改的那一级，
         // 别的块压根没被画过，nameDrawn 自然是 false——不能因为这就给它们发号。
         int onlyTier = ProvinceEditor.isActive() ? ProvinceEditor.viewTier() : 0;
-        for (Province province : store.allSorted()) {
+        for (Province province : store.renderOrder()) {
             if (marks.size() >= SERIAL_LIMIT) {
                 break;
             }
@@ -210,32 +211,36 @@ public final class ProvinceMapOverlay {
         if (session == null) {
             return;
         }
+        // 高亮色块跟正式边框吃同一层吸附网格，缩小时才不会差出半格。
+        // 每方块像素必须跟 draw(...) 用同一个来源（projection.pixelsPerBlock()）：
+        // 自己另算一遍的话，两边在档位边界上会挑到不同网格，填充和边框就又错开了。
+        ProvinceRenderer.Projection grid = ProvinceRenderer.snap(projection, projection.pixelsPerBlock());
 
         // 父级与同级邻居先铺一层淡色：一眼就能看出「画得出去的地方」到哪儿为止。
         Province parent = session.parentProvince();
         if (parent != null) {
-            ProvinceRenderer.fillShape(graphics::fill, projection, parent.shape(), FILL_PARENT, 0.0, 0.0, clipW, clipH);
-            ProvinceRenderer.strokeShape(graphics::fill, projection, parent.shape(), COLOR_PARENT, 1.0, PREVIEW_STROKE_LIMIT);
+            ProvinceRenderer.fillShape(graphics::fill, grid, parent.shape(), FILL_PARENT, 0.0, 0.0, clipW, clipH);
+            ProvinceRenderer.strokeShape(graphics::fill, grid, parent.shape(), COLOR_PARENT, 1.0, PREVIEW_STROKE_LIMIT);
         }
         for (Province sibling : ProvinceEditor.store().atTier(session.tier())) {
             if (sibling.id() == session.targetId()) {
                 continue;
             }
-            ProvinceRenderer.fillShape(graphics::fill, projection, sibling.shape(), FILL_SIBLING, 0.0, 0.0, clipW, clipH);
+            ProvinceRenderer.fillShape(graphics::fill, grid, sibling.shape(), FILL_SIBLING, 0.0, 0.0, clipW, clipH);
         }
 
         VectorShape working = session.working();
         if (working != null && !working.isEmpty()) {
-            ProvinceRenderer.fillShape(graphics::fill, projection, working, FILL_WORKING, 0.0, 0.0, clipW, clipH);
-            ProvinceRenderer.strokeShape(graphics::fill, projection, working, COLOR_WORKING, 1.0, PREVIEW_STROKE_LIMIT);
+            ProvinceRenderer.fillShape(graphics::fill, grid, working, FILL_WORKING, 0.0, 0.0, clipW, clipH);
+            ProvinceRenderer.strokeShape(graphics::fill, grid, working, COLOR_WORKING, 1.0, PREVIEW_STROKE_LIMIT);
         }
         VectorShape preview = session.preview();
         if (preview != null && !preview.isEmpty()) {
             EditTool tool = session.tool();
             boolean removing = tool != null && tool.isErasing();
-            ProvinceRenderer.fillShape(graphics::fill, projection, preview, removing ? FILL_REMOVE : FILL_ADD,
+            ProvinceRenderer.fillShape(graphics::fill, grid, preview, removing ? FILL_REMOVE : FILL_ADD,
                     0.0, 0.0, clipW, clipH);
-            ProvinceRenderer.strokeShape(graphics::fill, projection, preview,
+            ProvinceRenderer.strokeShape(graphics::fill, grid, preview,
                     removing ? COLOR_REMOVE : COLOR_ADD, 1.0, PREVIEW_STROKE_LIMIT);
         }
     }
@@ -353,6 +358,11 @@ public final class ProvinceMapOverlay {
                 () -> MapExporter.requestExport(MapExporter.ExportMode.WORLD), null, true));
         y += ROW + GAP;
 
+        // 第三种导出：自己填四个角。打开的是独立输入页，确认后回到这张地图导。
+        out.add(new Widget(x, y, innerW, ROW, () -> "导出指定范围地图…",
+                () -> ProvinceExportRangeScreen.open(Minecraft.getInstance().gui.screen()), null, true));
+        y += ROW + GAP;
+
         out.add(new Widget(x, y, colW, ROW, () -> "设置",
                 ProvinceMapOverlay::openSettings, null, true));
         out.add(new Widget(x + colW + GAP, y, colW, ROW, () -> "退出编辑",
@@ -404,7 +414,9 @@ public final class ProvinceMapOverlay {
     public static boolean onMousePressed(double mouseX, double mouseY, int button, int guiWidth, int guiHeight,
             double cameraX, double cameraZ, double scale, double screenScale,
             double windowWidth, double windowHeight) {
-        if (button != 0) {
+        // 26.3 的 MouseButtonInfo 用 InputConstants.MOUSE_BUTTON_* 编号（左键 = 1），
+        // 不再是 GLFW 的 0/1/2。
+        if (button != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
         // 编辑模式只剩快捷键一个入口（默认 P，见 ProvinceKeys），地图上不放按钮了。
@@ -426,7 +438,7 @@ public final class ProvinceMapOverlay {
     }
 
     public static boolean onMouseReleased(int button) {
-        if (button != 0 || !ProvinceEditor.isActive()) {
+        if (button != InputConstants.MOUSE_BUTTON_LEFT || !ProvinceEditor.isActive()) {
             return false;
         }
         ProvinceEditor.onRelease();
@@ -451,8 +463,8 @@ public final class ProvinceMapOverlay {
     private static boolean shiftDown() {
         Window window = Minecraft.getInstance().getWindow();
         return window != null
-                && (InputConstants.isKeyDown(window, InputConstants.KEY_LSHIFT)
-                        || InputConstants.isKeyDown(window, InputConstants.KEY_RSHIFT));
+                && (InputConstants.isKeyDown(InputConstants.KEY_LSHIFT)
+                        || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT));
     }
 
     private static boolean isOverPanel(double mouseX, double mouseY) {

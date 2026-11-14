@@ -1,5 +1,7 @@
 package com.mcprovince.client.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
+
 import com.mcprovince.client.ProvinceEditor;
 import com.mcprovince.core.AdminLevels;
 import com.mcprovince.core.Province;
@@ -162,7 +164,8 @@ public class ProvinceNameScreen extends Screen {
     }
 
     private static int pageCount() {
-        return Math.max(1, (levels().size() + PER_PAGE - 1) / PER_PAGE);
+        // 末尾留一格给「自定义…」：自建级别名的入口得看得见，不能只靠页脚那个小加号。
+        return Math.max(1, (levels().size() + 1 + PER_PAGE - 1) / PER_PAGE);
     }
 
     /** 级别格子里显示的名字：切到英文时缺英文名就退回中文名，免得格子空着。 */
@@ -249,7 +252,7 @@ public class ProvinceNameScreen extends Screen {
         List<AdminLevels.Name> all = levels();
         int total = all.size();
         int from = this.page * PER_PAGE;
-        int to = Math.min(total, from + PER_PAGE);
+        int to = Math.min(total + 1, from + PER_PAGE);
 
         int footerY = footerY();
         int colorY = colorY();
@@ -275,6 +278,14 @@ public class ProvinceNameScreen extends Screen {
             int slot = index - from;
             int cx = levelCellX(slot);
             int cy = levelCellY(slot);
+            if (index == total) {
+                // 最后一格留给「自定义」：以前只有页脚一个 18×16 的加号，很容易被当成装饰。
+                boolean hover = Ui.inside(mouseX, mouseY, cx, cy, this.cellW, CELL_H);
+                graphics.fill(cx, cy, cx + this.cellW, cy + CELL_H, hover ? Ui.BTN_HOVER : Ui.BTN);
+                graphics.outline(cx, cy, this.cellW, CELL_H, COL_USER_EDGE);
+                graphics.text(this.font, "＋ 自定义…", cx + 4, cy + 5, COL_USER_EDGE);
+                continue;
+            }
             AdminLevels.Name name = all.get(index);
             boolean selected = name.key().equals(this.levelKey);
             boolean hover = Ui.inside(mouseX, mouseY, cx, cy, this.cellW, CELL_H);
@@ -325,7 +336,7 @@ public class ProvinceNameScreen extends Screen {
         Ui.button(graphics, this.font, mouseX, mouseY, this.width / 2 + 4, buttonY, okW, 20, "取消", false);
 
         String footNote = !this.hint.isEmpty() ? this.hint
-                : "页脚的 + 加一条自己的、- 删掉自己加的（金色边框那些）；「"
+                : "「＋ 自定义…」加一条自己的级别名，- 删掉自己加的（金色边框那些）；「"
                         + AdminLevels.NONE_LABEL + "」表示区划名后面不加任何称号。";
         graphics.centeredText(this.font, footNote, this.width / 2, buttonY + 26,
                 this.hint.isEmpty() ? COL_TEXT : 0xFFFF8080);
@@ -333,7 +344,7 @@ public class ProvinceNameScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != 0) {
+        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
             return super.mouseClicked(event, doubleClick);
         }
         double mouseX = event.x();
@@ -341,12 +352,16 @@ public class ProvinceNameScreen extends Screen {
 
         List<AdminLevels.Name> all = levels();
         int from = this.page * PER_PAGE;
-        int to = Math.min(all.size(), from + PER_PAGE);
+        int to = Math.min(all.size() + 1, from + PER_PAGE);
         for (int index = from; index < to; index++) {
             int slot = index - from;
             int cx = levelCellX(slot);
             int cy = levelCellY(slot);
             if (Ui.inside(mouseX, mouseY, cx, cy, this.cellW, CELL_H)) {
+                if (index == all.size()) {
+                    ProvinceLevelScreen.open(this);
+                    return true;
+                }
                 this.levelKey = all.get(index).key();
                 this.hint = "";
                 return true;

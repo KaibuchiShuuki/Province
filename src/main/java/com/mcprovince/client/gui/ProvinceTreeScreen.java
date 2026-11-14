@@ -1,5 +1,7 @@
 package com.mcprovince.client.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
+
 import com.mcprovince.client.ProvinceEditor;
 import com.mcprovince.client.ProvinceSettings;
 import com.mcprovince.core.AdminLevels;
@@ -306,7 +308,7 @@ public class ProvinceTreeScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != 0) {
+        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
             return super.mouseClicked(event, doubleClick);
         }
         double mouseX = event.x();
@@ -384,11 +386,11 @@ public class ProvinceTreeScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
-        if (this.dragIndex >= 0 && event.button() == 0) {
+        if (this.dragIndex >= 0 && event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             dragTo(event.y());
             return true;
         }
-        if (this.view.dragging() && event.button() == 0) {
+        if (this.view.dragging() && event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             this.view.dragTo(event.y());
             return true;
         }

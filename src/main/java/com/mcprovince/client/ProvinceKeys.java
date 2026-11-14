@@ -4,7 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
+
 
 /** 快捷键。默认都不占用游戏常用键位。 */
 public final class ProvinceKeys {
@@ -22,8 +22,8 @@ public final class ProvinceKeys {
 
     public static void register() {
         openEditor = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-                "key.mc-province.open_editor", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_P, CATEGORY));
+                "key.mc-province.open_editor", InputConstants.Type.KEYBOARD, InputConstants.KEY_P, CATEGORY));
         toggleProvinces = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-                "key.mc-province.toggle_provinces", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_R, CATEGORY));
+                "key.mc-province.toggle_provinces", InputConstants.Type.KEYBOARD, InputConstants.KEY_R, CATEGORY));
     }
 }

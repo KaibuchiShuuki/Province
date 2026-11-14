@@ -422,7 +422,10 @@ public final class PixelFont {
         }
         int[] meta = unifontReady ? hexIndex.get(codepoint) : null;
         if (meta != null && decodeUnifont(codepoint, meta, masks, size)) {
-            int width = size[1] - size[0] + 1;
+            // 推进量取字形单元的宽度（8 = 半角、16 = 全角），与 Font 的口径一致。
+            // 不能拿墨迹宽度算：汉字墨迹常常只有 14~15 个位图像素，按它推进会让每个字都往前
+            // 多吃掉一截，一行中文很快糊成一片。
+            int width = meta[1];
             return width / (float) OVERSAMPLE + 1.0f;
         }
         return 0.0f;
@@ -463,7 +466,7 @@ public final class PixelFont {
                     }
                 }
             }
-            return width / (float) OVERSAMPLE + 1.0f;
+            return bitWidth / (float) OVERSAMPLE + 1.0f;
         }
         if (codepoint != '?') {
             return drawGlyph(graphics, '?', x, y, scale, masks, size);
