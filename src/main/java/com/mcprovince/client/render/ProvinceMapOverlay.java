@@ -414,9 +414,7 @@ public final class ProvinceMapOverlay {
     public static boolean onMousePressed(double mouseX, double mouseY, int button, int guiWidth, int guiHeight,
             double cameraX, double cameraZ, double scale, double screenScale,
             double windowWidth, double windowHeight) {
-        // 26.3 的 MouseButtonInfo 用 InputConstants.MOUSE_BUTTON_* 编号（左键 = 1），
-        // 不再是 GLFW 的 0/1/2。
-        if (button != InputConstants.MOUSE_BUTTON_LEFT) {
+        if (button != 0) {
             return false;
         }
         // 编辑模式只剩快捷键一个入口（默认 P，见 ProvinceKeys），地图上不放按钮了。
@@ -438,7 +436,7 @@ public final class ProvinceMapOverlay {
     }
 
     public static boolean onMouseReleased(int button) {
-        if (button != InputConstants.MOUSE_BUTTON_LEFT || !ProvinceEditor.isActive()) {
+        if (button != 0 || !ProvinceEditor.isActive()) {
             return false;
         }
         ProvinceEditor.onRelease();
@@ -463,8 +461,8 @@ public final class ProvinceMapOverlay {
     private static boolean shiftDown() {
         Window window = Minecraft.getInstance().getWindow();
         return window != null
-                && (InputConstants.isKeyDown(InputConstants.KEY_LSHIFT)
-                        || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT));
+                && (InputConstants.isKeyDown(window, InputConstants.KEY_LSHIFT)
+                        || InputConstants.isKeyDown(window, InputConstants.KEY_RSHIFT));
     }
 
     private static boolean isOverPanel(double mouseX, double mouseY) {

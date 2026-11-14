@@ -460,8 +460,8 @@ public final class MapExporter {
     /** 导出完把生成目录打开，省得玩家自己翻存档文件夹；打不开也不影响导出本身。 */
     private static void openExportFolder(Minecraft minecraft) {
         try {
-            java.awt.Desktop.getDesktop().open(ProvinceData.exportDir(minecraft).toFile());
-        } catch (Exception e) {
+            Util.getPlatform().openPath(ProvinceData.exportDir(minecraft));
+        } catch (RuntimeException e) {
             // 静默跳过：文件夹打不开不是导出失败。
         }
     }

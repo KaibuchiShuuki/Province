@@ -12,7 +12,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import org.joml.Matrix3x2f;
 import org.joml.Matrix3x2fStack;
-import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.glfw.GLFW;
 
 /**
  * 把行政区划叠到 Xaero 的世界地图上。
@@ -137,7 +137,7 @@ public final class ProvinceMapHook {
             ProvinceEditor.toggleActive();
             return false;
         }
-        if (ProvinceEditor.isActive() && event.key() == InputConstants.KEY_ESCAPE) {
+        if (ProvinceEditor.isActive() && event.key() == GLFW.GLFW_KEY_ESCAPE) {
             ProvinceEditor.setActive(false);
             return false;
         }

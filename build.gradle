@@ -25,12 +25,13 @@ dependencies {
 
     // Xaero 的 World Map 仅作为编译期参照（mixin 目标 + 集成 API）。
     // 运行时由用户在 mods 目录提供，故用 compileOnly，不打包进本模组。
-    compileOnly files('_refs/xaeroworldmap-fabric-26.3-1.47.0.jar')
+    compileOnly files('_refs/xaeroworldmap-fabric-26.2-1.45.0.jar')
 
     // 小地图同理：区划图层是靠 mixin 挂进它的渲染循环，编译期只需要它的类；
     // 玩家没装小地图时那份 mixin 配置是 required=false，会被静默跳过。
     // ModuleRenderContext 这类公共件在 xaerolib 里，两个 jar 都要给。
-    compileOnly files('_refs/xaerominimap-fabric-26.3-26.6.0.jar')
+    compileOnly files('_refs/xaerominimap-fabric-26.2-26.4.2.jar')
+    compileOnly files('_refs/xaerolib-fabric-26.2-1.7.1.jar')
 }
 
 processResources {
