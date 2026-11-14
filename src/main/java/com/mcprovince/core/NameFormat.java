@@ -54,7 +54,27 @@ public enum NameFormat {
         };
     }
 
+    /**
+     * 拼到地名上的那段后缀。级别名可以带括号限定语（「（县级）市」），
+     * 括号只用来在级别列表里区分同类建制，落到地图上只该留「市」，
+     * 免得拼出「重庆（县级）市」这种念不通的名字。
+     */
+    static String visibleSuffix(String suffix) {
+        if (suffix == null || suffix.isEmpty()) {
+            return "";
+        }
+        int close = Math.max(suffix.lastIndexOf('）'), suffix.lastIndexOf(')'));
+        if (close >= 0 && close < suffix.length() - 1) {
+            String tail = suffix.substring(close + 1).trim();
+            if (!tail.isEmpty()) {
+                return tail;
+            }
+        }
+        return suffix;
+    }
+
     private static String concat(String name, String suffix) {
+        suffix = visibleSuffix(suffix);
         if (suffix.isEmpty()) {
             return name;
         }
@@ -65,6 +85,7 @@ public enum NameFormat {
     }
 
     private static String concatSpaced(String name, String suffix) {
+        suffix = visibleSuffix(suffix);
         if (suffix.isEmpty()) {
             return name;
         }

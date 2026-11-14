@@ -30,6 +30,9 @@ public final class ProvinceStore {
     /** {@link #allSorted()} 的缓存。增删区划时置空；渲染每帧都要拿这份列表。 */
     private List<Province> sortedCache;
 
+    /** {@link #renderOrder()} 的缓存，失效条件与 {@link #sortedCache} 相同。 */
+    private List<Province> renderCache;
+
     /**
      * 全部区划，按层级升序、同级按 id 升序。
      *
@@ -43,6 +46,30 @@ public final class ProvinceStore {
             this.sortedCache = list;
         }
         return this.sortedCache;
+    }
+
+    /**
+     * 渲染顺序：树状图里越靠上的区划画得越靠后（也就是压在更下面一层）。
+     *
+     * <p>层级之间先父后子——子区划永远盖在父区划上面；同一父层里按树状图的显示顺序倒着画，
+     * 于是「排在最上面」的那条最后落笔，边框压住它下面的所有同层区划。</p>
+     */
+    public List<Province> renderOrder() {
+        if (this.renderCache == null) {
+            List<Province> out = new ArrayList<>();
+            collectRenderOrder(Province.NO_PARENT, out);
+            this.renderCache = out;
+        }
+        return this.renderCache;
+    }
+
+    private void collectRenderOrder(int parentId, List<Province> out) {
+        List<Province> children = childrenOf(parentId);
+        for (int i = children.size() - 1; i >= 0; i--) {
+            Province province = children.get(i);
+            out.add(province);
+            collectRenderOrder(province.id(), out);
+        }
     }
 
     public boolean isEmpty() {
@@ -380,6 +407,7 @@ public final class ProvinceStore {
 
     private void index(Province province) {
         this.sortedCache = null;
+        this.renderCache = null;
         VectorShape.Bounds b = province.shape().bounds();
         if (b == null) {
             return;
@@ -399,6 +427,7 @@ public final class ProvinceStore {
 
     private void unindex(Province province) {
         this.sortedCache = null;
+        this.renderCache = null;
         List<Province> global = this.tierGlobal.get(province.tier());
         if (global != null) {
             global.remove(province);
@@ -437,6 +466,7 @@ public final class ProvinceStore {
         this.tierGlobal.clear();
         // putRaw 是绕过 index() 直接塞进 byId 的，这里补一刀，免得排序缓存留着上一次世界的数据。
         this.sortedCache = null;
+        this.renderCache = null;
         for (Province p : this.byId.values()) {
             index(p);
         }

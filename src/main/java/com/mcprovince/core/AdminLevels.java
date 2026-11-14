@@ -66,9 +66,10 @@ public final class AdminLevels {
         add("autonomous_region", "自治区", "Autonomous Region", "中");
         add("sar", "特别行政区", "Special Administrative Region");
         add("prefecture", "地区", "Prefecture", "中");
-        add("prefecture_city", "地级市", "Prefecture-level City");
+        // 括号里的限定语只在级别列表里出现；拼到地名上时只带「市」，见 NameFormat。
+        add("prefecture_city", "（地级）市", "(Prefecture-level) City");
         add("city", "市", "City", "中");
-        add("county_level_city", "县级市", "County-level City");
+        add("county_level_city", "（县级）市", "(County-level) City");
         add("county", "县", "County", "中");
         add("district", "区", "District", "中");
         add("autonomous_county", "自治县", "Autonomous County");
