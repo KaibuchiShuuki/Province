@@ -20,6 +20,15 @@ public final class Ui {
     /** 按钮文字色。 */
     public static final int TEXT = 0xFFFFFFFF;
 
+    /** 跑马灯：两份文字之间的空档、滚动速度、悬停后先停多久再动。 */
+    public static final double MARQUEE_GAP = 24.0;
+    public static final double MARQUEE_SPEED = 30.0;
+    public static final long MARQUEE_HOLD_MS = 600L;
+
+    /** 正在滚的那一段（按文字内容认），以及它开始滚的时刻。 */
+    private static String marqueeKey;
+    private static long marqueeStart;
+
     private Ui() {
     }
 
@@ -34,7 +43,53 @@ public final class Ui {
         boolean hover = inside(mouseX, mouseY, x, y, w, h);
         graphics.fill(x, y, x + w, y + h, selected ? BTN_SELECTED : hover ? BTN_HOVER : BTN);
         graphics.outline(x, y, w, h, selected ? EDGE_SELECTED : BTN);
-        graphics.centeredText(font, label, x + w / 2, y + (h - 8) / 2, TEXT);
+        scrollingText(graphics, font, "button:" + label, label, mouseX, mouseY, x, y, w, h, TEXT, true);
+    }
+
+    /**
+     * 画一段可能放不下的字：放得下就正常画，放不下先露开头，鼠标停在上面时开始跑马灯。
+     *
+     * <p>按钮标签、设置项的名字都走这里——翻译成英文/俄文以后常见「中文够宽、译文溢出」，
+     * 与其把按钮撑大或者硬截断，不如让字自己滚过去。跑马灯按 {@code key} 认，
+     * 鼠标挪到同一段字上不会重新从第一帧开始。</p>
+     *
+     * @param center 放得下的时候是否水平居中（按钮 true，左对齐的标签 false）
+     */
+    public static void scrollingText(GuiGraphicsExtractor graphics, Font font, String key, String text,
+            int mouseX, int mouseY, int x, int y, int w, int h, int color, boolean center) {
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+        int textW = font.width(text);
+        int baseline = y + (h - font.lineHeight) / 2;
+        if (textW <= w - 6) {
+            if (center) {
+                graphics.centeredText(font, text, x + w / 2, baseline, color);
+            } else {
+                graphics.text(font, text, x + 3, baseline, color);
+            }
+            return;
+        }
+        // 上下不内缩：字高就是框高时，缩 1px 会把字的顶边削掉。
+        graphics.enableScissor(x + 2, y, x + w - 2, y + h);
+        if (!inside(mouseX, mouseY, x, y, w, h)) {
+            // 平时就露开头那一段，剩下的裁在框外——想看全名把鼠标停上去。
+            graphics.text(font, text, x + 3, baseline, color);
+            graphics.disableScissor();
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (!key.equals(marqueeKey)) {
+            marqueeKey = key;
+            marqueeStart = now;
+        }
+        double span = textW + MARQUEE_GAP;
+        double travelled = Math.max(0L, now - marqueeStart - MARQUEE_HOLD_MS) / 1000.0 * MARQUEE_SPEED;
+        int offset = (int) Math.round(travelled % span);
+        graphics.text(font, text, x + 3 - offset, baseline, color);
+        // 后一份紧跟在前一份后面：滚出去的同时下一份从右边接上，看着是连着的。
+        graphics.text(font, text, x + 3 - offset + (int) Math.round(span), baseline, color);
+        graphics.disableScissor();
     }
 
     /**

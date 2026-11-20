@@ -1,5 +1,6 @@
 package com.mcprovince.edit;
 
+import com.mcprovince.core.Lang;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -11,7 +12,22 @@ import java.util.Deque;
  */
 public final class EditHistory<T> {
 
-    public record Entry<T>(String label, T forward, T backward) {
+    /**
+     * 一步可撤销的操作。
+     *
+     * <p>描述同时存两份：{@code label} 是记下这一步时拼好的整句，
+     * {@code labelKey}/{@code labelArgs} 是它的文案键与参数——界面语言换掉以后
+     * 用 {@link #display()} 现算，撤销提示不会卡在旧语言上。</p>
+     */
+    public record Entry<T>(String label, String labelKey, Object[] labelArgs, T forward, T backward) {
+
+        public Entry(String label, T forward, T backward) {
+            this(label, null, null, forward, backward);
+        }
+
+        public String display() {
+            return labelKey == null ? label : Lang.t(labelKey, labelArgs);
+        }
     }
 
     /** 默认保留多少步。 */
