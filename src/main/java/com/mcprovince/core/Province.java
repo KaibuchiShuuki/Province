@@ -32,6 +32,30 @@ public final class Province {
     private boolean nameDrawn = true;
     private final VectorShape shape = VectorShape.empty();
 
+    /**
+     * 地名落点的缓存。挑落点要在一块地的形状里撒 144 个采样点、每个点再做十次包含测试，
+     * 而形状和字号没变的时候结果也不会变——区划越大 {@link java.awt.geom.Area#contains}
+     * 越贵，这一份缓存省下来的正是「大地图卡顿」里最刺眼的那一块。
+     */
+    private VectorShape anchorPart;
+    private double anchorHalfW = Double.NaN;
+    private double anchorHalfH = Double.NaN;
+    private double[] anchorPoint;
+    /** 上一次挑到的落点是不是「九点全中」那一档；只有这一档才敢往更小的字号上复用。 */
+    private boolean anchorExact;
+
+    /**
+     * 地名文本的缓存，按名称格式各存一份。
+     *
+     * <p>同一帧里地图渲染要 {@code nameFormat}、进区划提示要 {@code titleFormat}，两个格式交替问
+     * 同一块地；只留一个槽位的话每次都被对方冲掉，等于没缓存。格式只有四种，一个数组就够。</p>
+     */
+    private final String[] labelTexts = new String[NameFormat.values().length];
+
+    private void invalidateLabel() {
+        java.util.Arrays.fill(this.labelTexts, null);
+    }
+
     public Province(int id, int parentId, int tier, String nameZh, String nameEn, String levelKey, int color) {
         this.id = id;
         this.parentId = parentId;
@@ -63,6 +87,7 @@ public final class Province {
 
     public void setNameZh(String value) {
         this.nameZh = value == null ? "" : value;
+        this.invalidateLabel();
     }
 
     public String nameEn() {
@@ -71,6 +96,7 @@ public final class Province {
 
     public void setNameEn(String value) {
         this.nameEn = value == null ? "" : value;
+        this.invalidateLabel();
     }
 
     public String levelKey() {
@@ -79,6 +105,7 @@ public final class Province {
 
     public void setLevelKey(String value) {
         this.levelKey = value == null ? AdminLevels.DEFAULT_KEY : value;
+        this.invalidateLabel();
     }
 
     /** 代表色，0xRRGGBB。 */
@@ -120,8 +147,46 @@ public final class Province {
         return this.shape;
     }
 
+    /**
+     * 上一次算好的地名落点。
+     *
+     * <p>字号只会随着地图缩放连续地变，而「更小的字」一定还塞得进「更大的字」找出来的那个位置：
+     * 九个采样点全在区划里的时候，把它们整体往中心收，收出来的还是一个更小的矩形。
+     * 所以只要这一次要的半宽半高不超过上次挑点时用的，这个落点就可以直接用——不必每滚一格
+     * 滚轮就把整块地重新撒一遍点。缩小地图（落点最挤、区划最多的情况）走的正是这条路。</p>
+     */
+    public double[] cachedNameAnchor(VectorShape part, double halfW, double halfH) {
+        if (this.anchorPart != part || this.anchorPoint == null) {
+            return null;
+        }
+        // 字号一模一样：什么档次的落点都能直接用。
+        if (halfW == this.anchorHalfW && halfH == this.anchorHalfH) {
+            return this.anchorPoint;
+        }
+        // 字号变小（地图缩小）：只有「九点全中」那一档才敢往小字号上推。
+        if (this.anchorExact && halfW <= this.anchorHalfW && halfH <= this.anchorHalfH) {
+            return this.anchorPoint;
+        }
+        return null;
+    }
+
+    public void setNameAnchor(VectorShape part, double halfW, double halfH, double[] point, boolean exact) {
+        this.anchorPart = part;
+        this.anchorHalfW = halfW;
+        this.anchorHalfH = halfH;
+        this.anchorPoint = point;
+        this.anchorExact = exact;
+    }
+
     public String displayName(NameFormat format) {
-        return format.format(this);
+        int slot = format.ordinal();
+        String text = this.labelTexts[slot];
+        if (text != null) {
+            return text;
+        }
+        text = format.format(this);
+        this.labelTexts[slot] = text;
+        return text;
     }
 
     @Override

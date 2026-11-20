@@ -4,6 +4,8 @@ import com.mcprovince.client.ProvinceEditor;
 import com.mcprovince.client.ProvinceSettings;
 
 import static com.mcprovince.client.ProvinceSettings.clamp;
+import com.mcprovince.core.Lang;
+import com.mcprovince.core.Language;
 import com.mcprovince.core.NameFormat;
 import com.mcprovince.core.Province;
 import net.minecraft.client.Minecraft;
@@ -46,8 +48,19 @@ public class ProvinceSettingsScreen extends Screen {
     private static final int BAR_THUMB = 0xA0A8B6C4;
     private static final int BAR_THUMB_HOT = 0xE0C8D8E8;
 
+    /** 翻译模组的下载地址；仓库还没公开，先占位成同一个账号下的预计地址。 */
+    private static final String TRANSLATION_URL = "https://github.com/KaibuchiShuuki/Province-Translation";
+    private static final int TOOLTIP_BG = 0xF0060A0E;
+    private static final int TOOLTIP_EDGE = 0xFF3A4756;
+    private static final int TEXT_ACCENT = 0xFF7FD4FF;
+
     private final Screen parent;
     private final List<Row> rows = new ArrayList<>();
+
+    /** 语言行在 {@link #rows} 里的下标；行表每次重建都会重新记一遍。 */
+    private int languageRow = -1;
+    /** 问号提示被点住了。悬停只是临时显示，点一下才留住。 */
+    private boolean languageHelpPinned;
 
     private int left;
     private int top;
@@ -77,7 +90,7 @@ public class ProvinceSettingsScreen extends Screen {
     }
 
     public ProvinceSettingsScreen(Screen parent) {
-        super(Component.literal("方块政区 · 设置"));
+        super(Component.literal(Lang.t("province.settings.title")));
         this.parent = parent;
     }
 
@@ -119,7 +132,7 @@ public class ProvinceSettingsScreen extends Screen {
     }
 
     private static Row toggle(String label, boolean value, Runnable flip) {
-        return new Row(label, value ? "开" : "关", flip, flip, Kind.SETTING, null);
+        return new Row(label, Lang.t(value ? "province.settings.on" : "province.settings.off"), flip, flip, Kind.SETTING, null);
     }
 
     private static Row number(String label, int value, Runnable dec, Runnable inc) {
@@ -145,57 +158,131 @@ public class ProvinceSettingsScreen extends Screen {
         ProvinceSettings s = ProvinceSettings.get();
         rows.clear();
 
-        rows.add(head("显示"));
-        rows.add(toggle("世界地图上显示区划", s.worldMapEnabled, () -> s.worldMapEnabled = !s.worldMapEnabled));
-        rows.add(toggle("小地图上显示区划", s.minimapEnabled, () -> s.minimapEnabled = !s.minimapEnabled));
+        rows.add(head(Lang.t("province.settings.section.interface")));
+        // 🗣 后面别带 VS16：默认字体不认那个变体选择符，会多画一个方框。
+        this.languageRow = rows.size();
+        rows.add(choice("\uD83D\uDDE3 " + Lang.t("province.settings.language"), languageLabel(),
+                this::prevLanguage, this::nextLanguage));
+
+        rows.add(head(Lang.t("province.settings.section.display")));
+        rows.add(toggle(Lang.t("province.settings.world_map"), s.worldMapEnabled, () -> s.worldMapEnabled = !s.worldMapEnabled));
+        rows.add(toggle(Lang.t("province.settings.minimap"), s.minimapEnabled, () -> s.minimapEnabled = !s.minimapEnabled));
         // 换显示级别会顺手重算每块区划的显示状态（树状图里手动勾掉的那些一并清空），
         // 所以这里必须走编辑器那边的入口，不能直接改字段。
-        rows.add(number("显示第几级", s.shownTier,
+        rows.add(number(Lang.t("province.settings.shown_tier"), s.shownTier,
                 () -> ProvinceEditor.setShownTier(s.shownTier - 1),
                 () -> ProvinceEditor.setShownTier(s.shownTier + 1)));
-        rows.add(toggle("显示区划名称", s.showNames, () -> s.showNames = !s.showNames));
-        rows.add(slider("地名允许超出的宽度", ProvinceSettings.NAME_SLACK_MIN, ProvinceSettings.NAME_SLACK_MAX,
+        rows.add(toggle(Lang.t("province.settings.show_names"), s.showNames, () -> s.showNames = !s.showNames));
+        rows.add(slider(Lang.t("province.settings.name_slack"), ProvinceSettings.NAME_SLACK_MIN, ProvinceSettings.NAME_SLACK_MAX,
                 () -> s.nameSlack, value -> s.nameSlack = value));
-        rows.add(choice("名称格式", s.nameFormat.label(), this::prevNameFormat, this::nextNameFormat));
-        rows.add(toggle("填充区划内部", s.showFilled, () -> s.showFilled = !s.showFilled));
-        rows.add(choice("填充不透明度", s.fillOpacityPercent + "%",
+        rows.add(choice(Lang.t("province.settings.name_format"), s.nameFormat.label(), this::prevNameFormat, this::nextNameFormat));
+        rows.add(toggle(Lang.t("province.settings.fill"), s.showFilled, () -> s.showFilled = !s.showFilled));
+        rows.add(choice(Lang.t("province.settings.fill_opacity"), s.fillOpacityPercent + "%",
                 () -> s.fillOpacityPercent = clamp(s.fillOpacityPercent - 5, 0, 100),
                 () -> s.fillOpacityPercent = clamp(s.fillOpacityPercent + 5, 0, 100)));
-        rows.add(toggle("智能降低填充精度", s.smartFill, () -> s.smartFill = !s.smartFill));
-        rows.add(toggle("智能降低边框精度", s.smartStroke, () -> s.smartStroke = !s.smartStroke));
-        rows.add(note("大面积高精度渲染会明显卡顿，推荐放大倍率较小时开启。"));
-        rows.add(toggle("启用平方千格", s.areaInKilo, () -> s.areaInKilo = !s.areaInKilo));
+        rows.add(toggle(Lang.t("province.settings.smart_fill"), s.smartFill, () -> s.smartFill = !s.smartFill));
+        rows.add(toggle(Lang.t("province.settings.smart_stroke"), s.smartStroke, () -> s.smartStroke = !s.smartStroke));
+        rows.add(note(Lang.t("province.settings.smart_note")));
+        rows.add(toggle(Lang.t("province.settings.area_kilo"), s.areaInKilo, () -> s.areaInKilo = !s.areaInKilo));
 
-        rows.add(head("序号标记"));
-        rows.add(toggle("启用序号标记", s.serialMarks, () -> s.serialMarks = !s.serialMarks));
-        rows.add(choice("注释位置", s.serialCorner.label(), this::prevSerialCorner, this::nextSerialCorner));
+        rows.add(head(Lang.t("province.settings.section.serial")));
+        rows.add(toggle(Lang.t("province.settings.serial_marks"), s.serialMarks, () -> s.serialMarks = !s.serialMarks));
+        rows.add(choice(Lang.t("province.settings.serial_corner"), s.serialCorner.label(), this::prevSerialCorner, this::nextSerialCorner));
 
-        rows.add(head("自动外框"));
-        rows.add(choice("边框样式", s.borderStyle.label(), this::prevBorderStyle, this::nextBorderStyle));
-        rows.add(number("边框粗细（像素）", s.borderWidth,
+        rows.add(head(Lang.t("province.settings.section.border")));
+        rows.add(choice(Lang.t("province.settings.border_style"), s.borderStyle.label(), this::prevBorderStyle, this::nextBorderStyle));
+        rows.add(number(Lang.t("province.settings.border_width"), s.borderWidth,
                 () -> s.borderWidth = clamp(s.borderWidth - 1, 1, 8),
                 () -> s.borderWidth = clamp(s.borderWidth + 1, 1, 8)));
 
-        rows.add(head("导出地图"));
-        rows.add(toggle("导出时包含区划", s.exportWithProvinces,
+        rows.add(head(Lang.t("province.settings.section.export")));
+        rows.add(toggle(Lang.t("province.settings.export_provinces"), s.exportWithProvinces,
                 () -> s.exportWithProvinces = !s.exportWithProvinces));
 
-        rows.add(head("进入区划提示"));
-        rows.add(toggle("启用提示标题", s.titleEnabled, () -> s.titleEnabled = !s.titleEnabled));
-        rows.add(toggle("启用提示副标题", s.titleSubtitle, () -> s.titleSubtitle = !s.titleSubtitle));
-        rows.add(number("触发级别", s.titleTier,
+        rows.add(head(Lang.t("province.settings.section.title")));
+        rows.add(toggle(Lang.t("province.settings.title_enabled"), s.titleEnabled, () -> s.titleEnabled = !s.titleEnabled));
+        rows.add(toggle(Lang.t("province.settings.title_subtitle"), s.titleSubtitle, () -> s.titleSubtitle = !s.titleSubtitle));
+        rows.add(number(Lang.t("province.settings.title_tier"), s.titleTier,
                 () -> s.titleTier = clamp(s.titleTier - 1, Province.MIN_TIER, Province.MAX_TIER),
                 () -> s.titleTier = clamp(s.titleTier + 1, Province.MIN_TIER, Province.MAX_TIER)));
-        rows.add(choice("提示格式", s.titleFormat.label(), this::prevTitleFormat, this::nextTitleFormat));
-        rows.add(number("淡入时长（tick）", s.titleFadeIn,
+        rows.add(choice(Lang.t("province.settings.title_format"), s.titleFormat.label(), this::prevTitleFormat, this::nextTitleFormat));
+        rows.add(number(Lang.t("province.settings.title_fade_in"), s.titleFadeIn,
                 () -> s.titleFadeIn = clamp(s.titleFadeIn - 5, 0, 200),
                 () -> s.titleFadeIn = clamp(s.titleFadeIn + 5, 0, 200)));
-        rows.add(number("停留时长（tick）", s.titleStay,
+        rows.add(number(Lang.t("province.settings.title_stay"), s.titleStay,
                 () -> s.titleStay = clamp(s.titleStay - 10, 10, 600),
                 () -> s.titleStay = clamp(s.titleStay + 10, 10, 600)));
-        rows.add(number("淡出时长（tick）", s.titleFadeOut,
+        rows.add(number(Lang.t("province.settings.title_fade_out"), s.titleFadeOut,
                 () -> s.titleFadeOut = clamp(s.titleFadeOut - 5, 0, 200),
                 () -> s.titleFadeOut = clamp(s.titleFadeOut + 5, 0, 200)));
+    }
+
+    private void prevLanguage() {
+        shiftLanguage(-1);
+    }
+
+    private void nextLanguage() {
+        shiftLanguage(1);
+    }
+
+    /**
+     * 在「跟随系统」和可用语言的列表里循环；切完立刻重读文案表，不用退出界面。
+     *
+     * <p>只有装了翻译模组才有一项「跟随系统」——只装本体时语言就两种，
+     * 跟随系统要么落在这两种里、要么没有意义，不如干脆不出现。</p>
+     */
+    private void shiftLanguage(int delta) {
+        ProvinceSettings s = ProvinceSettings.get();
+        List<Language> choices = new ArrayList<>();
+        if (Lang.translationPackInstalled()) {
+            choices.add(null); // 跟随游戏语言
+        }
+        for (Language language : Language.values()) {
+            if (Lang.available(language)) {
+                choices.add(language);
+            }
+        }
+        if (choices.isEmpty()) {
+            return;
+        }
+        Language fixed = Language.byCode(s.languageCode);
+        int index = choices.indexOf(fixed);
+        if (index < 0) {
+            // 当前是「跟随系统」，或者那门语言已经不在了：从实际落点开始挪。
+            index = choices.indexOf(s.effectiveLanguage());
+            if (index < 0) {
+                index = 0;
+            }
+        }
+        index = (index + delta + choices.size()) % choices.size();
+        Language next = choices.get(index);
+        s.languageCode = next == null ? Language.AUTO : next.code();
+        Lang.setLanguage(s.effectiveLanguage());
+        // 每一行的文字都是构造时取的，换语言后要整表重建；行数不变，滚动位置继续沿用。
+        buildRows();
+    }
+
+    /**
+     * 语言行右边那一段字。
+     *
+     * <p>只装本体时没有「跟随系统」：系统语言是中文就显示简体中文，否则显示英文（默认）。
+     * 装了翻译模组、并且系统语言真的能对上一种有文案的语言，才显示「跟随系统」。</p>
+     */
+    private String languageLabel() {
+        ProvinceSettings s = ProvinceSettings.get();
+        Language fixed = Language.byCode(s.languageCode);
+        if (fixed != null && Lang.available(fixed)) {
+            return Lang.t(fixed.nameKey());
+        }
+        if (!Lang.translationPackInstalled()) {
+            // 本体只有两种语言，没有「跟随系统」这一项：直接显示实际落点。
+            return Lang.t(s.effectiveLanguage().nameKey());
+        }
+        Language resolved = s.effectiveLanguage();
+        if (Lang.available(resolved)) {
+            return Lang.t("province.settings.language.auto");
+        }
+        return Lang.t("province.language.en_us.default");
     }
 
     private void prevNameFormat() {
@@ -340,9 +427,12 @@ public class ProvinceSettingsScreen extends Screen {
         layout();
         graphics.fill(left - 2, top - 2, left + panelW + 2, top + panelH + 2, BG);
         graphics.renderOutline(left - 2, top - 2, panelW + 4, panelH + 4, 0xFF3A4756);
-        graphics.drawCenteredString(this.font, this.title.getString(), left + panelW / 2, top + 4, TEXT_HEAD);
-        graphics.drawString(this.font, "自动保存于 config/mc-province/settings.nbt",
-                left + 6, top + 4 + this.font.lineHeight, TEXT_DIM);
+        String head = this.title.getString();
+        Ui.scrollingText(graphics, this.font, "head:" + head, head, mouseX, mouseY,
+                left + PAD, top + 4, panelW - PAD * 2, this.font.lineHeight, TEXT_HEAD, true);
+        String footer = Lang.t("province.settings.footer", "config/mc-province/settings.nbt");
+        Ui.scrollingText(graphics, this.font, "footer:" + footer, footer, mouseX, mouseY,
+                left + 6, top + 4 + this.font.lineHeight, panelW - 12, this.font.lineHeight, TEXT_DIM, false);
 
         graphics.enableScissor(left + 2, this.view.top(), left + panelW - 2,
                 this.view.top() + this.view.viewH());
@@ -360,14 +450,24 @@ public class ProvinceSettingsScreen extends Screen {
                 graphics.fill(left + 4, cellTop, left + panelW - 4, cellBottom, (i % 2 == 0) ? ROW_BG : ROW_ALT);
             }
             if (kind == Kind.HEAD) {
-                graphics.drawString(this.font, fit(row.label(), panelW - PAD * 2 - 8), left + 8, textY, TEXT_HEAD);
+                Ui.scrollingText(graphics, this.font, "row:" + row.label(), row.label(), mouseX, mouseY,
+                        left + 8, textY, panelW - PAD * 2 - 8, this.font.lineHeight, TEXT_HEAD, false);
                 continue;
             }
             if (kind == Kind.NOTE) {
-                graphics.drawString(this.font, fit(row.label(), panelW - PAD * 2 - 12), left + 12, textY, TEXT_DIM);
+                Ui.scrollingText(graphics, this.font, "row:" + row.label(), row.label(), mouseX, mouseY,
+                        left + 12, textY, panelW - PAD * 2 - 12, this.font.lineHeight, TEXT_DIM, false);
                 continue;
             }
-            graphics.drawString(this.font, fit(row.label(), decX() - left - 16), left + 8, textY, TEXT);
+            boolean showHelp = i == this.languageRow && showLanguageHelp();
+            if (showHelp) {
+                // 问号占住行首那一小格，标签整体右移，免得压在一起。
+                drawHelpButton(graphics, mouseX, mouseY, i);
+            }
+            int labelX = showHelp ? left + 23 : left + 8;
+            int labelW = showHelp ? decX() - left - 31 : decX() - left - 16;
+            Ui.scrollingText(graphics, this.font, "row:" + row.label(), row.label(), mouseX, mouseY,
+                    labelX, textY, labelW, this.font.lineHeight, TEXT, false);
 
             if (kind == Kind.SLIDER && row.slider() != null) {
                 Slider slider = row.slider();
@@ -380,7 +480,8 @@ public class ProvinceSettingsScreen extends Screen {
                 graphics.fill(sliderX0(), trackY - 2, sliderX1(), trackY + 3, BAR_TRACK);
                 int thumbX = sliderThumbX(value, slider.min(), slider.max());
                 graphics.fill(thumbX - 2, cellTop + 2, thumbX + 3, cellBottom - 2, hot ? BAR_THUMB_HOT : BAR_THUMB);
-                graphics.drawCenteredString(this.font, row.value(), rowRight() - 28, textY, TEXT);
+                Ui.scrollingText(graphics, this.font, "val:" + row.label(), row.value(), mouseX, mouseY,
+                        sliderX1() + 2, textY, rowRight() - sliderX1() - 2, this.font.lineHeight, TEXT, true);
                 continue;
             }
 
@@ -390,10 +491,11 @@ public class ProvinceSettingsScreen extends Screen {
             boolean incHover = mouseX >= incX && mouseX < incX + 22 && mouseY >= cellTop && mouseY < cellBottom;
             graphics.fill(decX, cellTop, decX + 22, cellBottom, decHover ? BTN_HOVER : BTN);
             graphics.fill(incX, cellTop, incX + 22, cellBottom, incHover ? BTN_HOVER : BTN);
-            graphics.drawCenteredString(this.font, "-", decX + 11, textY, TEXT);
-            graphics.drawCenteredString(this.font, "+", incX + 11, textY, TEXT);
+            graphics.drawCenteredString(this.font, "◀", decX + 11, textY, TEXT);
+            graphics.drawCenteredString(this.font, "▶", incX + 11, textY, TEXT);
 
-            graphics.drawCenteredString(this.font, row.value(), rowRight() - 58, textY, TEXT);
+            Ui.scrollingText(graphics, this.font, "val:" + row.label(), row.value(), mouseX, mouseY,
+                    decX + 24, textY, incX - decX - 26, this.font.lineHeight, TEXT, true);
         }
         graphics.disableScissor();
 
@@ -402,7 +504,106 @@ public class ProvinceSettingsScreen extends Screen {
         boolean doneHover = mouseX >= left + panelW / 2 - 40 && mouseX < left + panelW / 2 + 40
                 && mouseY >= doneY && mouseY < doneY + 20;
         graphics.fill(left + panelW / 2 - 40, doneY, left + panelW / 2 + 40, doneY + 20, doneHover ? BTN_HOVER : BTN);
-        graphics.drawCenteredString(this.font, "完成", left + panelW / 2, doneY + 6, TEXT);
+        String doneLabel = Lang.t("province.settings.done");
+        Ui.scrollingText(graphics, this.font, "done:" + doneLabel, doneLabel, mouseX, mouseY,
+                left + panelW / 2 - 40, doneY, 80, 20, TEXT, true);
+        drawLanguageHelp(graphics, mouseX, mouseY);
+    }
+
+    /** 没装翻译模组时语言行首那个问号。 */
+    private boolean showLanguageHelp() {
+        return !Lang.translationPackInstalled();
+    }
+
+    private int helpX() {
+        return left + 5;
+    }
+
+    private void drawHelpButton(GuiGraphics graphics, int mouseX, int mouseY, int index) {
+        int y = cellTop(index) + 2;
+        boolean hot = Ui.inside(mouseX, mouseY, helpX(), y, 12, 12);
+        boolean lit = hot || this.languageHelpPinned;
+        graphics.fill(helpX(), y, helpX() + 12, y + 12, lit ? BTN_HOVER : BTN);
+        graphics.renderOutline(helpX(), y, 12, 12, lit ? Ui.EDGE_SELECTED : BTN);
+        graphics.drawCenteredString(this.font, "?", helpX() + 6, y + 2, TEXT);
+    }
+
+    /**
+     * 问号的气泡：中英双语各一句，加下载地址。
+     *
+     * <p>不挂原版 tooltip——它会跑到鼠标底下挡住按钮，而且这里要的是固定几行、
+     * 两种语言都露出来的说明，自绘反而干净。</p>
+     */
+    private void drawLanguageHelp(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (!showLanguageHelp() || this.languageRow < 0) {
+            return;
+        }
+        int index = this.languageRow;
+        int rowTop = cellTop(index);
+        int rowBottom = cellBottom(index);
+        if (rowBottom <= this.view.top() || rowTop >= this.view.top() + this.view.viewH()) {
+            return;
+        }
+        boolean hot = Ui.inside(mouseX, mouseY, helpX(), rowTop + 2, 12, 12);
+        if (!hot && !this.languageHelpPinned) {
+            return;
+        }
+
+        int boxW = Math.max(120, Math.min(340, panelW - PAD * 2));
+        List<String> zh = wrapText(Lang.t("province.settings.language.help.zh"), boxW - PAD * 2);
+        List<String> en = wrapText(Lang.t("province.settings.language.help.en"), boxW - PAD * 2);
+        List<String> url = wrapText(TRANSLATION_URL, boxW - PAD * 2);
+        int lineH = this.font.lineHeight + 1;
+        int boxH = PAD * 2 + (zh.size() + en.size() + url.size()) * lineH - 1;
+
+        int x = Math.max(4, left + panelW - PAD - boxW);
+        int y = rowBottom + 3;
+        if (y + boxH > this.height - 4) {
+            // 下面放不下就翻到行上方，仍然贴着问号。
+            y = Math.max(4, rowTop - 3 - boxH);
+        }
+        graphics.fill(x, y, x + boxW, y + boxH, TOOLTIP_BG);
+        graphics.renderOutline(x, y, boxW, boxH, TOOLTIP_EDGE);
+
+        int textY = y + PAD - 1;
+        for (String line : zh) {
+            graphics.drawString(this.font, line, x + PAD, textY, TEXT);
+            textY += lineH;
+        }
+        for (String line : en) {
+            graphics.drawString(this.font, line, x + PAD, textY, TEXT);
+            textY += lineH;
+        }
+        for (String line : url) {
+            graphics.drawString(this.font, line, x + PAD, textY, TEXT_ACCENT);
+            textY += lineH;
+        }
+    }
+
+    /** 按像素宽度硬折行，只够画说明气泡用；空格不在折行点上也不管。 */
+    private List<String> wrapText(String text, int maxWidth) {
+        List<String> out = new ArrayList<>();
+        if (text == null || text.isEmpty()) {
+            return out;
+        }
+        StringBuilder line = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '\n') {
+                out.add(line.toString());
+                line.setLength(0);
+                continue;
+            }
+            if (line.length() > 0 && this.font.width(line.toString() + c) > maxWidth) {
+                out.add(line.toString());
+                line.setLength(0);
+            }
+            line.append(c);
+        }
+        if (line.length() > 0) {
+            out.add(line.toString());
+        }
+        return out;
     }
 
     @Override
@@ -413,12 +614,23 @@ public class ProvinceSettingsScreen extends Screen {
             this.onClose();
             return true;
         }
+        if (this.languageHelpPinned && this.languageRow >= 0
+                && !(mx >= helpX() && mx < helpX() + 12
+                && my >= cellTop(this.languageRow) && my < cellBottom(this.languageRow))) {
+            this.languageHelpPinned = false;
+        }
         if (this.view.overBar(mx, my)) {
             this.view.beginDrag(my);
             return true;
         }
         if (!this.view.containsY(my)) {
             return super.mouseClicked(event, doubleClick);
+        }
+        if (showLanguageHelp() && this.languageRow >= 0
+                && my >= cellTop(this.languageRow) && my < cellBottom(this.languageRow)
+                && mx >= helpX() && mx < helpX() + 12) {
+            this.languageHelpPinned = !this.languageHelpPinned;
+            return true;
         }
         for (int i = 0; i < rows.size(); i++) {
             Row row = rows.get(i);

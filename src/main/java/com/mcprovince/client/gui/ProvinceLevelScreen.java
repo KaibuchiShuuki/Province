@@ -1,6 +1,7 @@
 package com.mcprovince.client.gui;
 
 import com.mcprovince.core.AdminLevels;
+import com.mcprovince.core.Lang;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -23,7 +24,7 @@ public class ProvinceLevelScreen extends Screen {
     private String hint = "";
 
     public ProvinceLevelScreen(ProvinceNameScreen parent) {
-        super(Component.literal("方块政区 · 新增级别名"));
+        super(Component.literal(Lang.t("province.level.title")));
         this.parent = parent;
     }
 
@@ -47,21 +48,21 @@ public class ProvinceLevelScreen extends Screen {
         addRenderableWidget(this.enBox);
 
         int buttonY = 128;
-        addRenderableWidget(Button.builder(Component.literal("添加"), button -> submit())
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("province.gui.add")), button -> submit())
                 .bounds(this.width / 2 - 84, buttonY, 80, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("取消"), button -> onClose())
+        addRenderableWidget(Button.builder(Component.literal(Lang.t("province.gui.cancel")), button -> onClose())
                 .bounds(this.width / 2 + 4, buttonY, 80, 20).build());
     }
 
     private void submit() {
         String zh = this.zhBox == null ? "" : this.zhBox.getValue();
         if (zh.trim().isEmpty()) {
-            this.hint = "中文名不能空着。";
+            this.hint = Lang.t("province.level.empty");
             return;
         }
         AdminLevels.Name added = AdminLevels.addUser(zh, this.enBox == null ? "" : this.enBox.getValue());
         if (added == null) {
-            this.hint = "中文名不能空着。";
+            this.hint = Lang.t("province.level.empty");
             return;
         }
         // 加完就跳回命名界面，顺带把它选中、翻到它所在的那一页。
@@ -77,12 +78,15 @@ public class ProvinceLevelScreen extends Screen {
         super.render(graphics, mouseX, mouseY, partialTick);
         int boxW = Math.min(240, this.width - 40);
         int boxX = (this.width - boxW) / 2;
-        graphics.drawString(this.font, "级别名（必填）", boxX, 46, 0xFFFFFFFF);
-        graphics.drawString(this.font, "英文名（留空就用中文名）", boxX, 82, 0xFFFFFFFF);
+        Ui.scrollingText(graphics, this.font, "lvl:native", Lang.t("province.level.native"),
+                mouseX, mouseY, boxX, 46, boxW, 10, 0xFFFFFFFF, false);
+        Ui.scrollingText(graphics, this.font, "lvl:english", Lang.t("province.level.english"),
+                mouseX, mouseY, boxX, 82, boxW, 10, 0xFFFFFFFF, false);
         Ui.boxValue(graphics, this.font, this.zhBox);
         Ui.boxValue(graphics, this.font, this.enBox);
         if (!this.hint.isEmpty()) {
-            graphics.drawCenteredString(this.font, this.hint, this.width / 2, 156, 0xFFFF8080);
+            Ui.scrollingText(graphics, this.font, "lvl:hint:" + this.hint, this.hint,
+                    mouseX, mouseY, 10, 156, this.width - 20, 10, 0xFFFF8080, true);
         }
     }
 

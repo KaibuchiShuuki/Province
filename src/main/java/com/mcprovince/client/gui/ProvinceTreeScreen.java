@@ -1,5 +1,7 @@
 package com.mcprovince.client.gui;
 
+import com.mcprovince.core.Lang;
+
 import com.mcprovince.client.ProvinceEditor;
 import com.mcprovince.client.ProvinceSettings;
 import com.mcprovince.core.AdminLevels;
@@ -80,14 +82,13 @@ public class ProvinceTreeScreen extends Screen {
     }
 
     public ProvinceTreeScreen(Screen parent) {
-        super(Component.literal("方块政区 · 区划结构"));
+        super(Component.literal(Lang.t("province.tree.title")));
         this.parent = parent;
     }
 
     /** 从当前打开着的界面跳进树状图。 */
     public static void open() {
         Minecraft minecraft = Minecraft.getInstance();
-        // 1.21.11 线没有 26.x 的 Minecraft.gui.screen()，当前界面就是 Minecraft.screen 字段。
         Screen parent = minecraft.screen;
         minecraft.setScreenAndShow(new ProvinceTreeScreen(parent));
     }
@@ -210,12 +211,13 @@ public class ProvinceTreeScreen extends Screen {
         this.view.setContentH(this.rows.size() * ROW_STEP);
 
         ProvinceSettings settings = ProvinceSettings.get();
-        graphics.drawCenteredString(this.font, this.title.getString(), this.width / 2, 10, COL_TEXT);
+        String head = this.title.getString();
+        Ui.scrollingText(graphics, this.font, "treeTitle", head, mouseX, mouseY, 10, 6, this.width - 20, 12, COL_TEXT, true);
         graphics.fill(this.panelX, this.panelY, this.panelX + this.panelW, this.panelY + this.panelH, COL_PANEL);
         graphics.renderOutline(this.panelX, this.panelY, this.panelW, this.panelH, COL_EDGE);
 
         if (this.rows.isEmpty()) {
-            graphics.drawCenteredString(this.font, "还没有任何区划，先去世界地图上画一块", this.width / 2,
+            graphics.drawCenteredString(this.font, Lang.t("province.tree.empty"), this.width / 2,
                     this.panelY + 18, COL_TEXT_DIM);
         }
 
@@ -267,12 +269,30 @@ public class ProvinceTreeScreen extends Screen {
             graphics.renderOutline(bx, y + 4, SWATCH, SWATCH, COL_EDGE);
 
             // 没勾上的那块名字压暗，跟显示中的一眼分开。
-            graphics.drawString(this.font, province.displayName(settings.nameFormat), bx + SWATCH + 6, y + 5,
-                    province.visible() ? COL_TEXT : COL_TEXT_DIM);
+            String displayName = province.displayName(settings.nameFormat);
             String meta = "L" + province.tier() + " · " + AdminLevels.labelOf(AdminLevels.byKey(province.levelKey()))
                     + " · " + AreaFormat.format(province.shape().measure(), settings.areaInKilo);
-            int metaX = Math.max(bx + SWATCH + 48, cX - 8 - this.font.width(meta));
-            graphics.drawString(this.font, meta, metaX, y + 5, COL_TEXT_DIM);
+            int nameX = bx + SWATCH + 6;
+            int right = cX - 8;
+            int nameW = this.font.width(displayName);
+            int metaW = this.font.width(meta);
+            // 整行放得下就各给各的宽度。scrollingText 要求矩形比文字宽出 6px 才认「装得下」，
+            // 宽度正好等于字宽时会被判成装不下：右边明明空着，却开始滚、还把末尾的字削掉半截。
+            if (nameX + nameW + 6 + metaW + 6 <= right) {
+                Ui.scrollingText(graphics, this.font, "treeName:" + province.id(), displayName, mouseX, mouseY,
+                        nameX, y + 1, nameW + 6, ROW_H - 2,
+                        province.visible() ? COL_TEXT : COL_TEXT_DIM, false);
+                Ui.scrollingText(graphics, this.font, "treeMeta:" + province.id(), meta, mouseX, mouseY,
+                        nameX + nameW + 6, y + 1, metaW + 6, ROW_H - 2, COL_TEXT_DIM, false);
+            } else {
+                // 挤不下时名字给右边的「L2 · 级别 · 面积」让位，两者各自悬停才滚动。
+                int metaX = Math.max(nameX + 48, right - metaW - 6);
+                Ui.scrollingText(graphics, this.font, "treeName:" + province.id(), displayName, mouseX, mouseY,
+                        nameX, y + 1, Math.max(8, metaX - 6 - nameX), ROW_H - 2,
+                        province.visible() ? COL_TEXT : COL_TEXT_DIM, false);
+                Ui.scrollingText(graphics, this.font, "treeMeta:" + province.id(), meta, mouseX, mouseY,
+                        metaX, y + 1, Math.max(8, right - metaX), ROW_H - 2, COL_TEXT_DIM, false);
+            }
 
             boolean overSet = Ui.inside(mouseX, mouseY, cX, y + 1, SET_W, ROW_H - 2);
             graphics.fill(cX, y + 1, cX + SET_W, y + ROW_H - 1, overSet ? COL_SET_HOVER : COL_SET);
@@ -300,9 +320,9 @@ public class ProvinceTreeScreen extends Screen {
 
         int[] footer = footerLayout();
         int fy = footerY();
-        Ui.button(graphics, this.font, mouseX, mouseY, footer[0], fy, footer[1], 16, "关闭", false);
-        Ui.button(graphics, this.font, mouseX, mouseY, footer[2], fy, NEW_W, 16, "＋ 新建顶级区划", true);
-        graphics.drawString(this.font, "共 " + this.rows.size() + " 块", footer[2] + NEW_W + 12, fy + 4, COL_TEXT_DIM);
+        Ui.button(graphics, this.font, mouseX, mouseY, footer[0], fy, footer[1], 16, Lang.t("province.gui.close"), false);
+        Ui.button(graphics, this.font, mouseX, mouseY, footer[2], fy, NEW_W, 16, Lang.t("province.tree.new_root"), true);
+        graphics.drawString(this.font, Lang.t("province.tree.count", this.rows.size()), footer[2] + NEW_W + 12, fy + 4, COL_TEXT_DIM);
     }
 
     @Override
