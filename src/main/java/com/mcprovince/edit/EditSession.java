@@ -928,9 +928,9 @@ public final class EditSession {
     public String statusLine() {
         Province target = this.target();
         String what = target == null
-                ? ("第 " + this.tier + " 级")
-                : target.displayName(com.mcprovince.core.NameFormat.ZH_FULL);
-        return what + " · 选区 "
-                + AreaFormat.format(this.currentShape().measure(), ProvinceSettings.get().areaInKilo);
+                ? com.mcprovince.core.Lang.t("province.session.tier", this.tier)
+                : target.displayName(ProvinceSettings.get().nameFormat);
+        return com.mcprovince.core.Lang.t("province.session.line", what,
+                AreaFormat.format(this.currentShape().measure(), ProvinceSettings.get().areaInKilo));
     }
 }

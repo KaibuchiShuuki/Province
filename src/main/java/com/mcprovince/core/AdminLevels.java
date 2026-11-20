@@ -54,7 +54,9 @@ public final class AdminLevels {
     public static final String USER_PREFIX = "user_";
 
     /** 中文名和英文名都空着的时候，界面上拿这个当占位。 */
-    public static final String NONE_LABEL = "（无后缀）";
+    public static String noneLabel() {
+        return Lang.t("province.level.none_label");
+    }
 
     static {
         // ——— 中国现行 ———
@@ -225,16 +227,85 @@ public final class AdminLevels {
     /**
      * 界面上给这一项显示的名字：空后缀那项和两个名字都空的自建项都得有个占位。
      *
-     * <p>同名不同体系的内置项会带上注释，例如「县（中国）」和「县（日本）」——
-     * 界面上分得清，地图上的地名依旧是干干净净的「XX县」。</p>
+     * <p>名字跟着界面语言走（{@code province.level_name.<key>}），后面再跟一小段
+     * 「（日本）」这样的标注——中文用全角括号，其他语言用半角，位置都在名字后面。</p>
      */
     public static String labelOf(Name name) {
-        return (name.zh().isEmpty() ? NONE_LABEL : name.zh()) + noteSuffix(name);
+        String base = plainLabel(name);
+        if (base.isEmpty()) {
+            base = noneLabel();
+        }
+        return base + noteSuffix(name);
     }
 
-    /** 那一小段「（日本）」；没有注释就是空串。 */
+    /**
+     * 这一项在当前界面语言下的名字，不带标注。
+     *
+     * <p>内置项的文案在语言包里查；玩家自建项没有翻译，中文界面用中文名、
+     * 其他界面用英文名（英文名留空时 {@link #addUser(String, String)} 会拿中文名顶上）。
+     * 空后缀那一项返回空串，让调用方自己决定要不要占位。</p>
+     */
+    public static String plainLabel(Name name) {
+        if (NONE_KEY.equals(name.key())) {
+            return "";
+        }
+        if (isUser(name.key())) {
+            return chineseInterface() ? name.zh() : name.en();
+        }
+        String key = "province.level_name." + name.key();
+        if (Lang.has(key)) {
+            String text = Lang.t(key);
+            if (!text.isEmpty()) {
+                return text;
+            }
+        }
+        return name.en();
+    }
+
+    /** 英文那一侧的名字，空后缀项退回占位；括注跟中文侧一样带着，免得「县」和「郡」分不清。 */
+    public static String labelEn(Name name) {
+        String text = name.en();
+        if (text.isEmpty()) {
+            text = noneLabel();
+        }
+        return text + noteSuffix(name);
+    }
+
+    private static boolean chineseInterface() {
+        return switch (Lang.current()) {
+            case ZH_CN, ZH_TW -> true;
+            default -> false;
+        };
+    }
+
+    /** 标注词到语言键的对照。内置项的标注就那么十三个，写死比猜省事。 */
+    private static final Map<String, String> NOTE_IDS = Map.ofEntries(
+            Map.entry("中", "cn"),
+            Map.entry("法", "fr"),
+            Map.entry("蒙", "mn"),
+            Map.entry("古中国", "ancient"),
+            Map.entry("日", "jp"),
+            Map.entry("韩", "kr"),
+            Map.entry("美", "us"),
+            Map.entry("英", "uk"),
+            Map.entry("瑞士", "ch"),
+            Map.entry("德", "de"),
+            Map.entry("波", "pl"),
+            Map.entry("俄", "ru"),
+            Map.entry("阿拉伯", "ar"));
+
+    /** 那一小段「（日本）」；没有标注就是空串。 */
     public static String noteSuffix(Name name) {
-        return name.note().isEmpty() ? "" : "（" + name.note() + "）";
+        String note = name.note();
+        if (note.isEmpty()) {
+            return "";
+        }
+        String id = NOTE_IDS.get(note);
+        String text = id == null ? note : Lang.t("province.level_note." + id);
+        if (text.isEmpty()) {
+            text = note;
+        }
+        return (chineseInterface() ? "（" : " (") + text + (chineseInterface() ? "）" : ")");
     }
 
     /**
