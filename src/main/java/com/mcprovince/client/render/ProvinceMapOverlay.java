@@ -1,5 +1,7 @@
 package com.mcprovince.client.render;
 
+import com.mcprovince.core.Lang;
+
 import com.mcprovince.client.MapExporter;
 import com.mcprovince.client.ProvinceClient;
 import com.mcprovince.client.ProvinceEditor;
@@ -8,6 +10,7 @@ import com.mcprovince.client.SerialCorner;
 import com.mcprovince.client.gui.ProvinceExportRangeScreen;
 import com.mcprovince.client.gui.ProvinceSettingsScreen;
 import com.mcprovince.client.gui.ProvinceTreeScreen;
+import com.mcprovince.client.gui.Ui;
 import com.mcprovince.core.Province;
 import com.mcprovince.core.ProvinceStore;
 import com.mcprovince.core.VectorShape;
@@ -60,7 +63,7 @@ public final class ProvinceMapOverlay {
     private static final int FILL_SIBLING = 0x30FF9AA2;
 
     /** 编辑预览单帧最多描多少条线段，和正式边界一样，超了就只靠填充看形状。 */
-    private static final int PREVIEW_STROKE_LIMIT = 4_000;
+    private static final int PREVIEW_STROKE_LIMIT = 1_500;
 
     /** 序号标记用的带圈数字，最多列到 20 块。 */
     private static final String SERIAL_CHARS = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳";
@@ -189,7 +192,7 @@ public final class ProvinceMapOverlay {
         for (String line : lines) {
             textW = Math.max(textW, font.width(line));
         }
-        int boxW = textW + LEGEND_PAD * 2;
+        int boxW = Math.min(textW + LEGEND_PAD * 2, guiWidth - 8);
         int boxH = lines.size() * LEGEND_LINE_H + LEGEND_PAD * 2;
         SerialCorner corner = settings.serialCorner;
         int x = corner == SerialCorner.TOP_LEFT || corner == SerialCorner.BOTTOM_LEFT ? 4 : guiWidth - boxW - 4;
@@ -201,7 +204,10 @@ public final class ProvinceMapOverlay {
         graphics.fill(x, y, x + boxW, y + boxH, COL_LEGEND_BG);
         graphics.outline(x, y, boxW, boxH, COL_EDGE);
         for (int i = 0; i < lines.size(); i++) {
-            graphics.text(font, lines.get(i), x + LEGEND_PAD, y + LEGEND_PAD + i * LEGEND_LINE_H, COL_TEXT);
+            // 这台浮层拿不到鼠标坐标：放不下时只裁不滚，至少不顶出屏幕。
+            Ui.scrollingText(graphics, font, "legend:" + i, lines.get(i), -1, -1,
+                    x + LEGEND_PAD, y + LEGEND_PAD + i * LEGEND_LINE_H,
+                    boxW - LEGEND_PAD * 2, LEGEND_LINE_H, COL_TEXT, false);
         }
     }
 
@@ -216,14 +222,26 @@ public final class ProvinceMapOverlay {
         // 自己另算一遍的话，两边在档位边界上会挑到不同网格，填充和边框就又错开了。
         ProvinceRenderer.Projection grid = ProvinceRenderer.snap(projection, projection.pixelsPerBlock());
 
+        // 编辑态比只查看的时候贵得多：父级、每个同级、正在画的面、鼠标预览，四样都要各投影
+        // 一遍再跑扫描线。同级一多，屏幕外的那些纯属白算——先按画面范围筛一遍。
+        double[] view = ProvinceRenderer.worldBounds(projection, 0.0, 0.0, clipW, clipH);
+        // 吸附最多把形状往外挪半格，视口跟着放宽，免得贴边的块被误剔。
+        view[0] -= 64.0;
+        view[1] -= 64.0;
+        view[2] += 64.0;
+        view[3] += 64.0;
+
         // 父级与同级邻居先铺一层淡色：一眼就能看出「画得出去的地方」到哪儿为止。
         Province parent = session.parentProvince();
-        if (parent != null) {
+        if (parent != null && inWorldView(parent.shape(), view)) {
             ProvinceRenderer.fillShape(graphics::fill, grid, parent.shape(), FILL_PARENT, 0.0, 0.0, clipW, clipH);
             ProvinceRenderer.strokeShape(graphics::fill, grid, parent.shape(), COLOR_PARENT, 1.0, PREVIEW_STROKE_LIMIT);
         }
         for (Province sibling : ProvinceEditor.store().atTier(session.tier())) {
             if (sibling.id() == session.targetId()) {
+                continue;
+            }
+            if (!inWorldView(sibling.shape(), view)) {
                 continue;
             }
             ProvinceRenderer.fillShape(graphics::fill, grid, sibling.shape(), FILL_SIBLING, 0.0, 0.0, clipW, clipH);
@@ -243,6 +261,19 @@ public final class ProvinceMapOverlay {
             ProvinceRenderer.strokeShape(graphics::fill, grid, preview,
                     removing ? COLOR_REMOVE : COLOR_ADD, 1.0, PREVIEW_STROKE_LIMIT);
         }
+    }
+
+    /** 这块形状的包围盒跟视口（世界坐标）挨不挨着；编辑态筛同级时用。 */
+    private static boolean inWorldView(VectorShape shape, double[] view) {
+        if (shape == null || shape.isEmpty()) {
+            return false;
+        }
+        VectorShape.Bounds bounds = shape.bounds();
+        if (bounds == null) {
+            return false;
+        }
+        return !(bounds.maxX() < view[0] || bounds.minX() > view[2]
+                || bounds.maxZ() < view[1] || bounds.minZ() > view[3]);
     }
 
     private static void drawPanel(GuiGraphicsExtractor graphics, Font font, int mouseX, int mouseY) {
@@ -289,7 +320,9 @@ public final class ProvinceMapOverlay {
             return;
         }
         int color = !widget.enabled ? COL_TEXT_OFF : COL_TEXT;
-        graphics.centeredText(font, label, widget.x + widget.w / 2, widget.y + (widget.h - 8) / 2, color);
+        // 英文标签比中文长，按钮宽度是按中文定的：写不下就滚动，别把字压到边框外面。
+        Ui.scrollingText(graphics, font, "widget:" + label, label, mouseX, mouseY,
+                widget.x, widget.y, widget.w, widget.h, color, true);
     }
 
     // ————————————————— 控件布局 —————————————————
@@ -312,7 +345,7 @@ public final class ProvinceMapOverlay {
         }
         y += ((tools.length + 1) / 2) * (ROW + GAP);
 
-        out.add(new Widget(x, y, innerW, ROW, () -> "层级 L" + ProvinceEditor.viewTier() + "：只看、只改这一级",
+        out.add(new Widget(x, y, innerW, ROW, () -> Lang.t("province.overlay.tier", ProvinceEditor.viewTier()),
                 null, null, false));
         y += ROW + GAP;
 
@@ -328,7 +361,7 @@ public final class ProvinceMapOverlay {
 
         // 粗细条：一格一像素，点哪格就多粗。只作用于选区笔和选区擦。
         out.add(new Widget(x, y, innerW, ROW,
-                () -> "笔粗 " + ProvinceEditor.brushPixels() + " px（只影响选区笔 / 选区擦）",
+                () -> Lang.t("province.overlay.brush", ProvinceEditor.brushPixels()),
                 null, null, false));
         y += ROW + GAP;
 
@@ -342,30 +375,30 @@ public final class ProvinceMapOverlay {
         }
         y += ROW + GAP;
 
-        out.add(new Widget(x, y, colW, ROW, () -> "保存",
+        out.add(new Widget(x, y, colW, ROW, () -> Lang.t("province.gui.save"),
                 ProvinceEditor::commit, null, ProvinceEditor.session() != null));
-        out.add(new Widget(x + colW + GAP, y, colW, ROW, () -> "取消",
+        out.add(new Widget(x + colW + GAP, y, colW, ROW, () -> Lang.t("province.gui.cancel"),
                 ProvinceEditor::cancelSession, null, ProvinceEditor.session() != null));
         y += ROW + GAP;
 
-        out.add(new Widget(x, y, innerW, ROW, () -> "区划树（看结构 / 删区划）",
+        out.add(new Widget(x, y, innerW, ROW, () -> Lang.t("province.overlay.tree"),
                 ProvinceTreeScreen::open, null, true));
         y += ROW + GAP;
 
-        out.add(new Widget(x, y, colW, ROW, () -> "导出当前地图",
+        out.add(new Widget(x, y, colW, ROW, () -> Lang.t("province.overlay.export_screen"),
                 () -> MapExporter.requestExport(MapExporter.ExportMode.SCREEN), null, true));
-        out.add(new Widget(x + colW + GAP, y, colW, ROW, () -> "导出世界全图",
+        out.add(new Widget(x + colW + GAP, y, colW, ROW, () -> Lang.t("province.overlay.export_world"),
                 () -> MapExporter.requestExport(MapExporter.ExportMode.WORLD), null, true));
         y += ROW + GAP;
 
         // 第三种导出：自己填四个角。打开的是独立输入页，确认后回到这张地图导。
-        out.add(new Widget(x, y, innerW, ROW, () -> "导出指定范围地图…",
+        out.add(new Widget(x, y, innerW, ROW, () -> Lang.t("province.overlay.export_range"),
                 () -> ProvinceExportRangeScreen.open(Minecraft.getInstance().screen), null, true));
         y += ROW + GAP;
 
-        out.add(new Widget(x, y, colW, ROW, () -> "设置",
+        out.add(new Widget(x, y, colW, ROW, () -> "⚙ " + Lang.t("province.overlay.settings"),
                 ProvinceMapOverlay::openSettings, null, true));
-        out.add(new Widget(x + colW + GAP, y, colW, ROW, () -> "退出编辑",
+        out.add(new Widget(x + colW + GAP, y, colW, ROW, () -> Lang.t("province.overlay.exit_edit"),
                 () -> ProvinceEditor.setActive(false), null, true));
 
         return out;
@@ -379,7 +412,7 @@ public final class ProvinceMapOverlay {
     private static void pumpExport() {
         String result = MapExporter.tickExport(Minecraft.getInstance());
         if (result != null) {
-            ProvinceEditor.setStatus("导出地图：" + result);
+            ProvinceEditor.setStatus(Lang.t("province.overlay.export_result", result));
         }
     }
 
@@ -390,7 +423,8 @@ public final class ProvinceMapOverlay {
             return;
         }
         int kind = MapExporter.noticeKind();
-        int width = font.width(text) + 18;
+        // 文案可能比屏幕还长（导出失败的路径之类）：框和字都收在屏内，超出的部分鼠标停上去才滚。
+        int width = Math.min(font.width(text) + 18, guiWidth - 8);
         int height = 16;
         int x = Math.max(4, (guiWidth - width) / 2);
         int y = Math.max(4, guiHeight - height - 12);
@@ -406,7 +440,7 @@ public final class ProvinceMapOverlay {
         };
         graphics.fill(x, y, x + width, y + height, background);
         graphics.outline(x, y, width, height, edge);
-        graphics.centeredText(font, text, guiWidth / 2, y + 4, COL_TEXT);
+        Ui.scrollingText(graphics, font, "notice:" + text, text, -1, -1, x + 2, y, width - 4, height, COL_TEXT, true);
     }
 
     // ————————————————— 输入 —————————————————

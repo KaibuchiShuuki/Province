@@ -11,6 +11,8 @@ import com.mcprovince.core.AdminLevels;
 import com.mcprovince.core.BlockSnap;
 import com.mcprovince.core.BorderStyle;
 import com.mcprovince.core.FenceFaces;
+import com.mcprovince.core.Lang;
+import com.mcprovince.core.Language;
 import com.mcprovince.core.NameFormat;
 import com.mcprovince.core.Province;
 import com.mcprovince.core.ProvinceStore;
@@ -55,6 +57,8 @@ public final class ProvinceSelfTest {
     public static void run(Logger log) {
         passed = 0;
         failed = 0;
+        // 下面的断言按中文界面写死（「静冈县」「重庆」），先把界面语言钉到简体中文。
+        Lang.setLanguage(Language.ZH_CN);
         log.info("[selftest] ======== mc-province self test ========");
         runOne(log, "VectorShape", ProvinceSelfTest::testVectorShape);
         runOne(log, "Curve", ProvinceSelfTest::testCurve);
@@ -63,6 +67,7 @@ public final class ProvinceSelfTest {
         runOne(log, "Bucket", ProvinceSelfTest::testBucket);
         runOne(log, "FenceFaces", ProvinceSelfTest::testFenceFaces);
         runOne(log, "BorderStyle", ProvinceSelfTest::testBorderStyle);
+        runOne(log, "I18n", ProvinceSelfTest::testI18n);
         runOne(log, "FillCoverage", ProvinceSelfTest::testFillCoverage);
         runOne(log, "StrokeAdaptive", ProvinceSelfTest::testStrokeAdaptive);
         runOne(log, "Constrain", ProvinceSelfTest::testConstrain);
@@ -586,6 +591,32 @@ public final class ProvinceSelfTest {
         check(BorderStyle.DASH.shift(-1) == BorderStyle.LINE, "shifting backwards works");
     }
 
+    /** 八份语言表都能读出来，占位符能替换，认不出的语言键按「英语 → 键名」回退。 */
+    private static void testI18n() {
+        Language original = Lang.current();
+        for (Language language : Language.values()) {
+            Lang.setLanguage(language);
+            String title = Lang.t("province.settings.title");
+            check(!title.equals("province.settings.title"), language.code() + " loads its table, got " + title);
+            check(Lang.has("province.name.native"), language.code() + " has the common keys");
+            check(Lang.t("province.area.blocks", 12).contains("12"),
+                    language.code() + " fills placeholders, got " + Lang.t("province.area.blocks", 12));
+        }
+        Lang.setLanguage(Language.EN_US);
+        check(Lang.t("province.this.key.does.not.exist").equals("province.this.key.does.not.exist"),
+                "an unknown key comes back as itself");
+
+        check(Language.resolve("lzh") == Language.ZH_TW, "classical chinese maps to traditional chinese");
+        check(Language.resolve("zh_tw") == Language.ZH_TW, "traditional chinese is its own table");
+        check(Language.resolve("zh_hk") == Language.ZH_TW, "hong kong chinese uses the traditional table");
+        check(Language.resolve("en_gb") == Language.EN_US, "british english maps to english");
+        check(Language.resolve("es_mx") == Language.ES_ES, "mexican spanish maps to spanish");
+        check(Language.resolve("pt_br") == Language.EN_US, "an unsupported language falls back to english");
+        check(Language.byCode(Language.AUTO) == null, "auto is not a fixed language");
+
+        Lang.setLanguage(original);
+    }
+
     /** 玩家自己加的级别名：加得上、删得掉，内置的那些动不了；空后缀那项只显示原名。 */
     private static void testUserLevels() {
         int before = AdminLevels.all().size();
@@ -614,7 +645,7 @@ public final class ProvinceSelfTest {
 
         // 空后缀那项：中文名就是空串，界面上靠 labelOf 给个占位。
         check(AdminLevels.zh(AdminLevels.NONE_KEY).isEmpty(), "the none level has an empty suffix");
-        check(AdminLevels.labelOf(AdminLevels.byKey(AdminLevels.NONE_KEY)).equals(AdminLevels.NONE_LABEL),
+        check(AdminLevels.labelOf(AdminLevels.byKey(AdminLevels.NONE_KEY)).equals(AdminLevels.noneLabel()),
                 "the none level shows a placeholder label");
         AdminLevels.Name tail = AdminLevels.all().get(AdminLevels.all().size() - 1);
         check(AdminLevels.NONE_KEY.equals(tail.key()), "the none level sits at the end of the list");
