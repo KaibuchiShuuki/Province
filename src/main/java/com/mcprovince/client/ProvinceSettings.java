@@ -1,9 +1,12 @@
 package com.mcprovince.client;
 
-import com.mcprovince.data.NbtCompat;
 import com.mcprovince.core.BorderStyle;
+import com.mcprovince.core.Lang;
+import com.mcprovince.core.Language;
 import com.mcprovince.core.NameFormat;
 import com.mcprovince.core.Province;
+import com.mcprovince.data.NbtCompat;
+import net.minecraft.client.Minecraft;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
@@ -22,6 +25,14 @@ public final class ProvinceSettings {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("mc-province");
     private static final ProvinceSettings INSTANCE = new ProvinceSettings();
+
+    // —— 界面 ——
+    /**
+     * 界面语言：{@code auto} 跟随游戏语言，其余存 {@link Language#code()}。
+     *
+     * <p>只影响模组自己的界面；原版界面、按键名仍然听游戏的。</p>
+     */
+    public String languageCode = Language.AUTO;
 
     // —— 世界地图 ——
     public boolean worldMapEnabled;
@@ -60,7 +71,7 @@ public final class ProvinceSettings {
      * <p>开着的时候，缩得越小、轮廓越复杂，扫描线就隔得越开，代价是极小的比例尺下
      * 颜色块的边缘会略糙；关掉就每个屏幕像素都扫一遍，大面积区划上会非常卡。</p>
      */
-    public boolean smartFill;
+    public boolean smartFill = false;
     /**
      * 描边时是否允许按缩放倍率自动降精度。
      *
@@ -69,7 +80,7 @@ public final class ProvinceSettings {
      * 越狠、采样间距也拉得越稀；关掉就一条边都不并、每个屏幕像素都采，精确刻画所有边界，
      * 代价是轮廓一复杂就卡。</p>
      */
-    public boolean smartStroke;
+    public boolean smartStroke = true;
 
     /**
      * 智能降精度总开关：上面两个开关任开一个就算开着。
@@ -135,6 +146,36 @@ public final class ProvinceSettings {
         return FabricLoader.getInstance().getConfigDir().resolve("mc-province").resolve("settings.nbt");
     }
 
+    /**
+     * 当前该用哪种界面语言：手动选的优先，否则看游戏语言。
+     *
+     * <p>只装本体时可选的语言只有简体中文与英文，所以「跟随系统」也只能落在这两种里——
+     * 系统是中文就用中文，其它一律英文（界面上写的就是 English (Default)）。</p>
+     */
+    public Language effectiveLanguage() {
+        Language fixed = Language.byCode(this.languageCode);
+        if (fixed != null && Lang.available(fixed)) {
+            return fixed;
+        }
+        Language resolved = Language.resolve(gameLanguageCode());
+        if (!Lang.translationPackInstalled()) {
+            return resolved == Language.ZH_CN ? Language.ZH_CN : Language.EN_US;
+        }
+        return resolved;
+    }
+
+    private static String gameLanguageCode() {
+        try {
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft != null && minecraft.options != null && minecraft.options.languageCode != null) {
+                return minecraft.options.languageCode;
+            }
+        } catch (Throwable ignored) {
+            // 配置文件里加载，客户端还没起来是正常的。
+        }
+        return Language.EN_US.code();
+    }
+
     public void load() {
         Path path = file();
         if (!Files.exists(path)) {
@@ -142,6 +183,7 @@ public final class ProvinceSettings {
         }
         try {
             CompoundTag tag = NbtIo.readCompressed(path, NbtAccounter.create(8388608L));
+            this.languageCode = NbtCompat.stringOr(tag, "language", this.languageCode);
             this.worldMapEnabled = NbtCompat.boolOr(tag, "worldMapEnabled", this.worldMapEnabled);
             this.minimapEnabled = NbtCompat.boolOr(tag, "minimapEnabled", this.minimapEnabled);
             // 不再兼容旧的 highestTierShown：那一版默认值是最高级，留着会把新默认值第一级顶掉。
@@ -182,6 +224,7 @@ public final class ProvinceSettings {
     public void save() {
         Path path = file();
         CompoundTag tag = new CompoundTag();
+        tag.putString("language", this.languageCode);
         tag.putBoolean("worldMapEnabled", this.worldMapEnabled);
         tag.putBoolean("minimapEnabled", this.minimapEnabled);
         tag.putInt("shownTier", this.shownTier);

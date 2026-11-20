@@ -1,5 +1,7 @@
 package com.mcprovince.edit;
 
+import com.mcprovince.core.Lang;
+
 /**
  * 行政区划编辑器里的工具。
  *
@@ -8,21 +10,17 @@ package com.mcprovince.edit;
  */
 public enum EditTool {
 
-    SELECT_BRUSH("select_brush", "选区笔", "按住拖动，划到哪儿就选中哪儿"),
-    SELECT_LINE("select_line", "直线", "两点之间拉一条选区"),
-    SELECT_RECT("select_rect", "矩形", "拖出一块实心矩形选区"),
-    SELECT_ELLIPSE("select_ellipse", "圆形", "拖出一块实心椭圆选区"),
-    ERASER("eraser", "选区擦", "把已经选中的地方擦掉"),
-    MAGIC("magic", "魔棒", "点一下，自动选中围出来的那一整块");
+    SELECT_BRUSH("select_brush"),
+    SELECT_LINE("select_line"),
+    SELECT_RECT("select_rect"),
+    SELECT_ELLIPSE("select_ellipse"),
+    ERASER("eraser"),
+    MAGIC("magic");
 
     private final String key;
-    private final String label;
-    private final String description;
 
-    EditTool(String key, String label, String description) {
+    EditTool(String key) {
         this.key = key;
-        this.label = label;
-        this.description = description;
     }
 
     public String key() {
@@ -30,11 +28,11 @@ public enum EditTool {
     }
 
     public String label() {
-        return this.label;
+        return Lang.t("province.edit_tool." + this.key);
     }
 
     public String description() {
-        return this.description;
+        return Lang.t("province.edit_tool." + this.key + ".desc");
     }
 
     /** 一按下就要拖拽成形的工具（其余是自由累积或单击生效）。 */

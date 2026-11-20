@@ -5,6 +5,7 @@ import com.mcprovince.core.BorderStyle;
 import com.mcprovince.core.Province;
 import com.mcprovince.core.ProvinceStore;
 import com.mcprovince.core.VectorShape;
+import java.util.HashMap;
 import java.util.List;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -67,7 +68,7 @@ public final class ProvinceRenderer {
      * <p>这个阈值只管智能档。关掉智能档是要「精确刻画所有边界」的，一条边都不并，
      * 调用方会给 {@code projectEdges} 传 0。</p>
      */
-    private static final double MIN_EDGE_PIXELS = 0.35;
+    private static final double MIN_EDGE_PIXELS = 0.15;
 
     /**
      * 一次描边在屏幕上最多落多少笔。
@@ -95,15 +96,43 @@ public final class ProvinceRenderer {
      * 缩到最小也扫得动。</p>
      *
      * <p>门限取「这一级网格在屏幕上还剩 0.5 像素」：每方块 0.5 像素以上还是单格，0.125 像素
-     * 以上并到 4 格，再往下就一直是区块。门限压得比较低，是因为吸附会丢精度，能看清的时候
-     * 就别动它——0.2.3 最初取 1 和 0.25，刚缩一点就变粗，太急了。</p>
+     * 以上并到 4 格，再往下就一直是区块。门限取「1 方块占不到 1 像素」这一档：从贴合方块
+     * 到 4×4 方块再到整区块的过渡，缩小时能一档一档看出来，而不是快到看不出变化。</p>
      *
      * <p>区块（16 格）是最粗的一档。再并到 4×4 区块只剩轮廓，没有必要，也不再往下走。</p>
      */
     private static final double SNAP_ONE_MIN_PIXELS_PER_BLOCK = 0.5;
     private static final double SNAP_FOUR_MIN_PIXELS_PER_BLOCK = 0.125;
+    private static final double SNAP_SIXTEEN_MIN_PIXELS_PER_BLOCK = 0.03;
 
     private ProvinceRenderer() {
+    }
+
+    /**
+     * 地名文本的像素宽度，按字符串记住。
+     *
+     * <p>{@code Font.width} 要逐字符查字形，一块区划一帧原来要问两遍（算世界尺寸一遍、
+     * 判「装不装得下」又一遍），同一个字符串每帧都重新走一遍字表。名字本身是按格式拼出来的，
+     * 数量也就那么几种，记下来就够了。字体实例换了（改语言、换资源包）整张表作废。</p>
+     */
+    private static Font labelWidthFont;
+    private static final HashMap<String, Integer> LABEL_WIDTHS = new HashMap<>();
+
+    private static int labelWidth(Font font, String text) {
+        if (font != labelWidthFont) {
+            LABEL_WIDTHS.clear();
+            labelWidthFont = font;
+        }
+        Integer cached = LABEL_WIDTHS.get(text);
+        if (cached != null) {
+            return cached;
+        }
+        int width = font.width(text);
+        if (LABEL_WIDTHS.size() >= 4096) {
+            LABEL_WIDTHS.clear();
+        }
+        LABEL_WIDTHS.put(text, width);
+        return width;
     }
 
     /**
@@ -113,7 +142,7 @@ public final class ProvinceRenderer {
      */
     public static int snapStep(double pixelsPerBlock) {
         if (!(pixelsPerBlock > 0.0)) {
-            return 16;
+            return 64;
         }
         if (pixelsPerBlock >= SNAP_ONE_MIN_PIXELS_PER_BLOCK) {
             return 1;
@@ -121,7 +150,10 @@ public final class ProvinceRenderer {
         if (pixelsPerBlock >= SNAP_FOUR_MIN_PIXELS_PER_BLOCK) {
             return 4;
         }
-        return 16;
+        if (pixelsPerBlock >= SNAP_SIXTEEN_MIN_PIXELS_PER_BLOCK) {
+            return 16;
+        }
+        return 64;
     }
 
     /**
@@ -242,7 +274,7 @@ public final class ProvinceRenderer {
 
         // 0.2.3：智能档把边界吸到粗网格上（1→4→16 格）。关掉智能档时 step 恒为 1，
         // 包装也不建，送进投影的还是原坐标，行为与 0.2.2 一模一样。
-        // 编辑态也吸附：渲染与编辑器预览必须走同一套网格，不然填充和边框会差半格。
+        // 编辑态同样走这套：缩到看不清的时候，画面和手感都该跟查看时一致。
         int snapGrid = settings.smartPrecision() ? snapStep(pixelsPerBlock) : 1;
         Projection drawProjection = snapGrid > 1 ? new SnappedProjection(projection, snapGrid) : projection;
         if (snapGrid > 1) {
@@ -272,17 +304,22 @@ public final class ProvinceRenderer {
             if (!inView(province, onlyTier, worldMinX, worldMinZ, worldMaxX, worldMaxZ)) {
                 continue;
             }
+            // 细长的区划不能吃全图那一档：16 格吸附下短边只剩几格，所有顶点会被压到同一条
+            // 网格线上，形状退化成一段直线，看着就是「缩到某一级边框忽然被裁弯取直」。
+            int shapeGrid = snapGridFor(province.shape(), snapGrid);
+            Projection blockProjection = shapeGrid == snapGrid ? drawProjection
+                    : shapeGrid > 1 ? new SnappedProjection(projection, shapeGrid) : projection;
 
             // 填充与描边各投影一遍。填充不能共用那份裁到框内的边表：扫描线填充要的是
             // 「每条边与水平线的交点 x」，这个 x 本来就可以落在屏幕外（提交命令前才夹回来）。
             // 左右一起裁掉的话，屏幕外的边会整条消失，交点少配一对，屏幕上就露出一条没填到的横缝。
             if (filled) {
-                projectEdgesForFill(drawProjection, province.shape().segments(), clipMinY, clipMaxY);
+                projectEdgesForFill(blockProjection, province.shape().segments(), clipMinY, clipMaxY);
                 fillProjected(sink, fillAlpha | (province.color() & 0xFFFFFF), pixelsPerBlock,
                         clipMinX, clipMinY, clipMaxX, clipMaxY, settings.smartFill);
             }
             if (stroked) {
-                projectEdges(drawProjection, province.shape().segments(), clipMinX, clipMinY, clipMaxX, clipMaxY,
+                projectEdges(blockProjection, province.shape().segments(), clipMinX, clipMinY, clipMaxX, clipMaxY,
                         settings.smartStroke ? MIN_EDGE_PIXELS : 0.0);
                 strokeProjected(sink, province.color(), settings.borderWidthPixels(), settings.borderStyle,
                         clipMinX, clipMinY, clipMaxX, clipMaxY, MAX_STROKE_DOTS,
@@ -294,18 +331,50 @@ public final class ProvinceRenderer {
         if (named) {
             // 名字单独走第二遍：色块和边框全铺完了再写字。要是混在第一遍里，先画的那块的名字
             // 会被后画的邻居色块盖住——层级越低的区划越容易被压住。
+            //
+            // 字号（也就是「半个字占多少格」）只跟缩放有关，一次算好给每块用；文本宽度按字符串
+            // 记住，不再每块每帧问两遍字表。
+            double nameHalfH = pixelsPerBlock > 1.0E-9 ? font.lineHeight / pixelsPerBlock / 2.0 : 0.0;
             for (Province province : store.renderOrder()) {
                 if (!inView(province, onlyTier, worldMinX, worldMinZ, worldMaxX, worldMaxZ)) {
                     continue;
                 }
                 String label = province.displayName(settings.nameFormat);
-                if (!label.isEmpty() && drawNames(graphics, font, projection, province.shape(), label,
+                if (label.isEmpty()) {
+                    continue;
+                }
+                int labelPixels = labelWidth(font, label);
+                double nameHalfW = pixelsPerBlock > 1.0E-9 ? labelPixels / pixelsPerBlock / 2.0 : 0.0;
+                if (drawNames(graphics, font, projection, province, label, labelPixels, nameHalfW, nameHalfH,
                         clipMinX, clipMinY, clipMaxX, clipMaxY)) {
                     // 这一帧确实有名字落在屏幕上了，序号标记就别来抢位置。
                     province.setNameDrawn(true);
                 }
             }
         }
+    }
+
+    /**
+     * 这一块最多能用多粗的吸附网格。
+     *
+     * <p>网格边长不许超过形状短边的六分之一：区划本身只有三五格宽的时候，16 格网格会把
+     * 它的每个拐角都吸到同一条线上，描出来就是一根斜线——「裁弯取直」其实不是取直，
+     * 是细节整条被抹掉了。细碎的小块照旧按原坐标走，只有真的大块才降精度。</p>
+     */
+    private static int snapGridFor(VectorShape shape, int maxGrid) {
+        if (maxGrid <= 1 || shape == null || shape.isEmpty()) {
+            return 1;
+        }
+        VectorShape.Bounds bounds = shape.bounds();
+        if (bounds == null) {
+            return 1;
+        }
+        double span = Math.min(bounds.maxX() - bounds.minX(), bounds.maxZ() - bounds.minZ());
+        int grid = maxGrid;
+        while (grid > 1 && span < grid * 6.0) {
+            grid /= 4;
+        }
+        return Math.max(1, grid);
     }
 
     /**
@@ -572,18 +641,11 @@ public final class ProvinceRenderer {
      * 就永远不可能有名字。</p>
      */
     private static boolean drawNames(GuiGraphics graphics, Font font, Projection projection,
-                                  VectorShape shape, String label,
+                                  Province province, String label, int labelPixels,
+                                  double halfW, double halfH,
                                   double clipMinX, double clipMinY, double clipMaxX, double clipMaxY) {
-        double pixelsPerBlock = Math.abs(projection.screenX(1.0, 0.0) - projection.screenX(0.0, 0.0));
-        double textW = font.width(label);
-        double textH = font.lineHeight;
-        if (pixelsPerBlock > 1.0E-9) {
-            textW /= pixelsPerBlock;
-            textH /= pixelsPerBlock;
-        } else {
-            textW = 0.0;
-            textH = 0.0;
-        }
+        VectorShape shape = province.shape();
+        int nameSlack = ProvinceSettings.get().nameSlack;
 
         // 返回「这一块的名字到底有没有落到屏幕上」：一块都没画出来时，序号标记会顶上来。
         boolean drawn = false;
@@ -592,8 +654,9 @@ public final class ProvinceRenderer {
             if (bounds == null) {
                 continue;
             }
-            double boxW = Math.abs(projection.screenX(bounds.maxX(), bounds.centerZ())
-                    - projection.screenX(bounds.minX(), bounds.centerZ()));
+            double sxA = projection.screenX(bounds.minX(), bounds.centerZ());
+            double sxB = projection.screenX(bounds.maxX(), bounds.centerZ());
+            double boxW = Math.abs(sxB - sxA);
             // 屏幕上横向装不下这行字就不画——缩得太远时名字会挤成一团，连成一片反而看不清。
             // 「装得下」到底算多宽由设置里那条滑条说了算（{@code nameSlack}：正数就是允许字比
             // 地块宽出去几个像素，负数反过来要求地块比字宽）。导出图用的是同一个值。
@@ -603,10 +666,30 @@ public final class ProvinceRenderer {
             // 真判它装不下之前，下面那套落点搜索已经先替它找过一遍宽敞的地方了：中心塞不下
             // 就在整块地上重新采样，第一轮只认「整行字四角都在里面」的点，找不着才退到
             // 「探出去最少」的那一档。两轮都没结果才轮到序号。
-            if (boxW + ProvinceSettings.get().nameSlack < font.width(label)) {
+            if (boxW + nameSlack < labelPixels) {
                 continue;
             }
-            double[] anchor = nameAnchorForText(part, bounds, textW / 2.0, textH / 2.0, shape);
+            // 挑落点要在地块里撒上百个点，整块地都在视口外面的时候这一趟纯属白给：
+            // 落点一定落在这块地的包围盒里，包围盒都够不着就没必要算。
+            double minSx = Math.min(sxA, sxB);
+            double maxSx = Math.max(sxA, sxB);
+            double syA = projection.screenY(bounds.centerX(), bounds.minZ());
+            double syB = projection.screenY(bounds.centerX(), bounds.maxZ());
+            double minSy = Math.min(syA, syB);
+            double maxSy = Math.max(syA, syB);
+            if (maxSx < clipMinX - 100 || minSx > clipMaxX + 100
+                    || maxSy < clipMinY - 20 || minSy > clipMaxY + 20) {
+                continue;
+            }
+            double[] anchor = province.cachedNameAnchor(part, halfW, halfH);
+            if (anchor == null) {
+                anchor = nameAnchorForText(part, bounds, halfW, halfH, shape);
+                // 记下这个落点是不是「九点全中」那一档：只有这一档才敢在字号变小时直接复用，
+                // 退而求其次的那一档本来就贴着边界，缩小以后未必还站得住。
+                boolean exact = anchor != null
+                        && fitScore(shape, anchor[0], anchor[1], halfW, halfH) >= FIT_PROBES.length;
+                province.setNameAnchor(part, halfW, halfH, anchor, exact);
+            }
             if (anchor == null) {
                 continue;
             }
@@ -985,11 +1068,31 @@ public final class ProvinceRenderer {
             fillBucketHead[slot] = i;
         }
 
+        // 屏幕上方那些带不必逐带算交点：扫描线每一带都是从边的端点重新求交，跟上一带不相关。
+        // 只把它们挂过的边一次性激活（下面 bandTop 会把已经过期的边丢掉），开销就是一遍挂链。
+        // 区划放大到比屏幕还大时，屏幕外的带往往占绝大多数。
+        int firstRow = Math.max(0, (int) Math.ceil(clipMinY) - yStart);
+        if (firstRow >= rows) {
+            return;
+        }
         int activeCount = 0;
+        for (int r = 0; r < firstRow; r++) {
+            for (int e = fillBucketHead[r]; e != -1; e = fillNext[e]) {
+                fillActive[activeCount++] = e;
+            }
+        }
         int clipLeft = (int) Math.floor(clipMinX);
         int clipRight = (int) Math.ceil(clipMaxX);
 
-        for (int row = 0; row < rows; row += rowStep) {
+        // 相邻几带的横向起止一样时（大块区划内部几乎全是这样），合成一个矩形交出去：
+        // 一帧的绘制命令能少掉一大半。
+        int pendingX0 = 0;
+        int pendingX1 = 0;
+        int pendingY0 = 0;
+        int pendingY1 = 0;
+        boolean pending = false;
+
+        for (int row = firstRow; row < rows; row += rowStep) {
             int bandEnd = Math.min(rows - 1, row + rowStep - 1);
             // 这一带里所有行的边都要激活：错过的行以后不会再回来。
             for (int r = row; r <= bandEnd; r++) {
@@ -1034,6 +1137,10 @@ public final class ProvinceRenderer {
             }
             activeCount = fillCount + parkedCount;
             if (fillCount < 2) {
+                if (pending) {
+                    sink.fill(pendingX0, pendingY0, pendingX1, pendingY1, argb);
+                    pending = false;
+                }
                 continue;
             }
             sortActive(fillCount);
@@ -1043,16 +1150,75 @@ public final class ProvinceRenderer {
                 continue;
             }
             int bandBottom = yStart + bandEnd + 1;
-            for (int k = 0; k + 1 < fillCount; k += 2) {
-                // 先夹回裁剪框再转成整数。交点的 x 可能远在屏幕外（填充用的边表不裁左右），
-                // 直接 (int) 会溢出。
-                double xa = Math.max(fillActiveX[k], clipLeft);
-                double xb = Math.min(fillActiveX[k + 1], clipRight);
+            if (fillCount == 2) {
+                // 只有一对交点（凸的大块内部几乎每一带都是这样）：能接上就只延长高度。
+                //
+                // 左右两条边的横向位置在这一带里是连续变化的，只拿带中间那一行采样，
+                // 斜边处会跟描边错开半带到一整带——缩小之后就是「填充和边框之间那条缝」。
+                // 取带顶、带底两行的包络，色块正好盖到折线下面，缝就没了。
+                double xa = Math.max(Math.min(xAt(fillActive[0], bandTop), xAt(fillActive[0], bandBottomY)), clipLeft);
+                double xb = Math.min(Math.max(xAt(fillActive[1], bandTop), xAt(fillActive[1], bandBottomY)), clipRight);
                 if (xb > xa) {
-                    sink.fill((int) Math.floor(xa), screenY, (int) Math.ceil(xb), bandBottom, argb);
+                    // 取整和描边那边一致：描边的落点是 floor(x)，填充的边界也必须 floor，
+                    // 否则同一段斜边会一边 floor 一边四舍五入，差出一像素就是肉眼看到的错位。
+                    int px0 = (int) Math.floor(xa);
+                    int px1 = (int) Math.floor(xb);
+                    if (pending && px0 == pendingX0 && px1 == pendingX1 && screenY == pendingY1) {
+                        pendingY1 = bandBottom;
+                    } else {
+                        if (pending) {
+                            sink.fill(pendingX0, pendingY0, pendingX1, pendingY1, argb);
+                        }
+                        pendingX0 = px0;
+                        pendingX1 = px1;
+                        pendingY0 = screenY;
+                        pendingY1 = bandBottom;
+                        pending = true;
+                    }
+                } else if (pending) {
+                    sink.fill(pendingX0, pendingY0, pendingX1, pendingY1, argb);
+                    pending = false;
+                }
+            } else {
+                if (pending) {
+                    sink.fill(pendingX0, pendingY0, pendingX1, pendingY1, argb);
+                    pending = false;
+                }
+                for (int k = 0; k + 1 < fillCount; k += 2) {
+                    // 多段这一支没法逐段包络，改成取带底那一行：带的底部正好是下一带的顶部，
+                    // 纵向天然接上；横向跟描边在同一个 y 上取点，误差只剩像素取整。
+                    double xa = Math.max(xAt(fillActive[k], bandBottomY), clipLeft);
+                    double xb = Math.min(xAt(fillActive[k + 1], bandBottomY), clipRight);
+                    if (xb > xa) {
+                        sink.fill((int) Math.floor(xa), screenY, (int) Math.floor(xb), bandBottom, argb);
+                    }
                 }
             }
         }
+        if (pending) {
+            sink.fill(pendingX0, pendingY0, pendingX1, pendingY1, argb);
+        }
+    }
+
+    /**
+     * 这条投影后的边在屏幕 {@code y} 处的横坐标；{@code y} 落到边端点之外时夹回端点。
+     *
+     * <p>扫描线填充只在每一带的中间取一行交点，带高 2~4 像素时斜边最多偏出去两像素。
+     * 带顶、带底各来一次、取包络，色块就能盖满整带。</p>
+     */
+    private static double xAt(int e, double y) {
+        double ya = edgeY0[e];
+        double yb = edgeY1[e];
+        double lo = Math.min(ya, yb);
+        double hi = Math.max(ya, yb);
+        if (y <= lo) {
+            return ya <= yb ? edgeX0[e] : edgeX1[e];
+        }
+        if (y >= hi) {
+            return ya <= yb ? edgeX1[e] : edgeX0[e];
+        }
+        double t = (y - ya) / (yb - ya);
+        return edgeX0[e] + t * (edgeX1[e] - edgeX0[e]);
     }
 
     /**

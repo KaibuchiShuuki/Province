@@ -1,5 +1,7 @@
 package com.mcprovince.client;
 
+import com.mcprovince.core.Lang;
+
 import com.mcprovince.client.render.ProvinceRenderer;
 import com.mcprovince.core.BorderStyle;
 import com.mcprovince.core.NameFormat;
@@ -66,20 +68,14 @@ public final class MapExporter {
     /** 导出的三种范围。 */
     public enum ExportMode {
         /** 屏幕上正显示的那一块。 */
-        SCREEN("地图"),
+        SCREEN,
         /** 整个世界地图已经加载过的区域。 */
-        WORLD("世界全图"),
+        WORLD,
         /** 玩家自己填的矩形方块范围。 */
-        RANGE("指定范围");
-
-        private final String label;
-
-        ExportMode(String label) {
-            this.label = label;
-        }
+        RANGE;
 
         public String label() {
-            return this.label;
+            return Lang.t("province.export.mode." + this.name().toLowerCase(java.util.Locale.ROOT));
         }
     }
 
@@ -135,7 +131,7 @@ public final class MapExporter {
         requestedMode = mode;
         requestDrawn = false;
         requestNanos = System.nanoTime();
-        notice = "正在导出" + mode.label() + "…";
+        notice = Lang.t("province.export.running", mode.label());
         noticeKind = NOTICE_RUNNING;
         noticeUntil = Long.MAX_VALUE;
     }
@@ -189,12 +185,12 @@ public final class MapExporter {
         try {
             result = export(minecraft, requestedMode);
         } catch (RuntimeException | LinkageError e) {
-            result = new Result(false, "导出失败：" + e);
+            result = new Result(false, Lang.t("province.export.failed", e));
         }
         if (result.ok()) {
             openExportFolder(minecraft);
         }
-        notice = result.ok() ? "导出成功：" + result.message() : result.message();
+        notice = result.ok() ? Lang.t("province.export.success", result.message()) : result.message();
         noticeKind = result.ok() ? NOTICE_OK : NOTICE_ERROR;
         noticeUntil = System.nanoTime() + NOTICE_NANOS;
         return result.message();
@@ -221,15 +217,15 @@ public final class MapExporter {
     public static Result export(Minecraft minecraft, ExportMode mode) {
         WorldMapSession session = WorldMapSession.getCurrentSession();
         if (session == null || !session.isUsable()) {
-            return new Result(false, "地图还没准备好，稍后再试");
+            return new Result(false, Lang.t("province.export.not_ready"));
         }
         MapProcessor processor = session.getMapProcessor();
         if (processor == null) {
-            return new Result(false, "地图还没准备好，稍后再试");
+            return new Result(false, Lang.t("province.export.not_ready"));
         }
         double pixelsPerBlock = scale / (screenScale <= 0.0 ? 1.0 : screenScale);
         if (!(pixelsPerBlock > 0.0)) {
-            return new Result(false, "地图缩放异常，无法导出");
+            return new Result(false, Lang.t("province.export.zoom_abnormal"));
         }
 
         int leftChunk;
@@ -251,7 +247,7 @@ public final class MapExporter {
                         Math.max(bounds[2], provinceBounds[2]), Math.max(bounds[3], provinceBounds[3])};
             }
             if (bounds == null) {
-                return new Result(false, "世界地图上还没加载出任何区域");
+                return new Result(false, Lang.t("province.export.no_loaded"));
             }
             // 四周多带两圈地图：区划常常正好画到「走过的地方」的边缘，不多带一点，描边和
             // 名字会被裁掉半截。多带的这块是地形（未探索处就是地图自己的空白），不是纸边。
@@ -263,10 +259,10 @@ public final class MapExporter {
             long width = (long) rangeMaxX - rangeMinX + 1;
             long height = (long) rangeMaxZ - rangeMinZ + 1;
             if (width <= 0 || height <= 0) {
-                return new Result(false, "指定范围无效：请检查 X / Z 两个方向");
+                return new Result(false, Lang.t("province.export.range_invalid"));
             }
             if (width > MAX_RANGE_BLOCKS || height > MAX_RANGE_BLOCKS) {
-                return new Result(false, "范围太大：单边最多 " + MAX_RANGE_BLOCKS + " 格（"
+                return new Result(false, Lang.t("province.export.range_too_large", MAX_RANGE_BLOCKS, width, height)
                         + width + " × " + height + "）");
             }
             // 范围是含端点的方块坐标，落到覆盖它的最小区块集上；后面再裁回精确矩形。
@@ -276,7 +272,7 @@ public final class MapExporter {
             bottomChunk = Math.floorDiv(rangeMaxZ, 16);
         } else {
             if (!Double.isFinite(cameraX) || !Double.isFinite(cameraZ)) {
-                return new Result(false, "地图视角异常，无法导出");
+                return new Result(false, Lang.t("province.export.view_abnormal"));
             }
             // 屏幕四角反投影回世界坐标，再落到区块格上——Xaero 的导出选区就是以区块为单位的。
             int guiWidth = minecraft.getWindow().getGuiScaledWidth();
@@ -288,7 +284,7 @@ public final class MapExporter {
             rightChunk = (int) Math.floor((cameraX + halfW) / 16.0);
             bottomChunk = (int) Math.floor((cameraZ + halfZ) / 16.0);
             if (rightChunk < leftChunk || bottomChunk < topChunk) {
-                return new Result(false, "屏幕范围太小，无法导出");
+                return new Result(false, Lang.t("province.export.screen_too_small"));
             }
         }
 
@@ -302,24 +298,24 @@ public final class MapExporter {
             result = new PNGExporter(directory).export(processor, processor.worldBiomeRegistry,
                     processor.getWorldDimensionTypeRegistry(), selection, WorldMap.oldFormatSupport);
         } catch (IOException e) {
-            return new Result(false, "建目录失败：" + e.getMessage());
+            return new Result(false, Lang.t("province.export.mkdir_failed", e.getMessage()));
         } catch (IllegalAccessException | RuntimeException | LinkageError e) {
             // IllegalArgumentException 属于 RuntimeException，一并落在这里。
-            return new Result(false, "导出失败：" + e);
+            return new Result(false, Lang.t("province.export.failed", e));
         }
         if (result.getType() != PNGExportResultType.SUCCESS) {
-            return new Result(false, "导出失败：" + result.getType().name());
+            return new Result(false, Lang.t("province.export.png_type", result.getType().name()));
         }
 
         Path image = findNewPng(directory, existing);
         if (image == null) {
-            return new Result(false, "导出似乎成功了，但没找到生成的图片");
+            return new Result(false, Lang.t("province.export.no_image"));
         }
         if (mode == ExportMode.RANGE) {
             // PNGExporter 只能按区块切：先按整区块导，再裁到玩家要的那个矩形，
             // 否则图会大出最多 15 格，和填进去的坐标对不上。
             if (!cropToRange(image, leftChunk, topChunk, rightChunk, bottomChunk)) {
-                return new Result(false, "导出图的裁剪失败");
+                return new Result(false, Lang.t("province.export.crop_failed"));
             }
             if (ProvinceSettings.get().exportWithProvinces) {
                 overlayProvinces(image, rangeMinX, rangeMinZ, rangeMaxX + 1.0, rangeMaxZ + 1.0, pixelsPerBlock);

@@ -1,5 +1,8 @@
 # 方块政区（Province）
 
+> 本 README 有两个语言版本：**简体中文（本页）**，以及 [English → README_EN.md](README_EN.md)。
+> This README comes in two languages: **Simplified Chinese (this page)** and [English → README_EN.md](README_EN.md).
+
 在 Minecraft 世界里划定自己的行政区划，当作一层矢量色块叠在 Xaero 的世界地图和小地图上。
 
 纯客户端模组：不往服务器发任何东西，也不往存档的区块数据里塞东西——区划是独立的一份矢量数据。
@@ -17,7 +20,9 @@
 
 没装 Xaero 也能进游戏，只是地图上看不到区划，编辑模式也打不开。
 
-把 `Province-0.2.3+1.21.1.jar` 丢进 `.minecraft/mods`。文件名里 `+` 后面是**这个 jar 适配的 Minecraft 版本**（Fabric 模组的通用命名惯例）：以后出了别的游戏版本的构建，下载页上会同时摆着 `Province-0.2.3+1.21.1.jar` 和对应那一版，模组自己的版本号可能一样，挑跟自己的游戏版本对得上的那一个装。装错了会在启动时报错退出，不会静默跑成奇怪的行为。
+把 `Province-0.2.4+1.21.1.jar` 丢进 `.minecraft/mods`。文件名里 `+` 后面是**这个 jar 适配的 Minecraft 版本**（Fabric 模组的通用命名惯例）：下载页上会同时摆着各版本线的同名 jar，模组自己的版本号可能一样，挑跟自己的游戏版本对得上的那一个装。装错了会在启动时报错退出，不会静默跑成奇怪的行为。
+
+界面语言本体自带**简体中文**与**English**；想要繁體中文、Français、Русский、Español、日本語、한국어，再装一个 **Province Translation**（`ProvinceTranslation-0.2.4.0.jar`）：它只放文案、没有代码，跟本体一起丢进 `mods` 就行，一份能配所有 Minecraft 版本。
 
 ## 怎么用
 
@@ -73,16 +78,16 @@
 - 「≡」按住上下拖，把这一条在**同级之间**换个位置，连它下面的子块一起挪。只改树状图里的先后，地图上画的东西不受影响；拖到别的父区划底下是不认的。
 - 点行本身 = 选中这一块，回到地图上改它的范围。
 
-新建之后会直接弹出命名界面：中文名、英文名、级别，下面还能从 16 种染料色里挑一个代表色。
+新建之后会直接弹出命名界面：母语名、英文名、级别，下面还能从 16 种染料色里挑一个代表色。两栏一直都在——界面切成英语时也一样，第一栏填自己的名字、第二栏填英文，不用记哪一栏该留空。
 
 级别表里国 / 省 / 市 / 县 / 区……一百多条，从古今中外常见的建制名里挑的。表尾那一项是**「（无后缀）」**，选它就只显示区划名本身。页脚右侧有两个小按钮：
 
-- **「＋ 自定义…」**（级别列表最后一格，页脚那个「+」也行）加一条自己的级别名。中文名必填（格子里就是靠它认的），英文名留空就跟着中文名走。
+- **「＋ 自定义…」**（级别列表最后一格，页脚那个「+」也行）加一条自己的级别名。母语名必填（格子里就是靠它认的），英文名留空就跟着母语名走。
 - **「-」** 只能删自己加的（金色边框那些），内置的一律拒绝。已经用过被删后缀的区划不会跟着改，只是显示时退回默认的「省」。
 
 同名建制各国都有。表里重名的项会在后面括注是哪一套，用最短的称呼：现代国家一律单字简称——**「县（中）」「县（日）」「County（美）」「Powiat（波）」**，瑞士和阿拉伯世界写全称；中国历代的建制（都、郡、州、道、路、府、军、厅、卫、所、里、邑、乡……）不分朝代统一写**「（古中国）」**。日本那一组单独走**音译**：都 To、道 Do、府 Fu、县 Ken、郡 Gun、市 Shi、区 Ku、町 Machi、村 Mura。括注只出现在级别格子、以及上面那行「级别：」里，**地图上的地名照样是干干净净的「XX县」**。 **「（县级）市」「（地级）市」** 这两种级别拼到地名上只带「市」——写「A市」而不是「A（县级）市」，英文同样只拼 City。
 
-翻页按钮「◀ ▶」左边有一枚小小的**「中 / EN」**：按一下，格子里的名字在中文和英文之间来回切，只是看着换，选中的还是同一条；英文名为空的那几条退回显示中文。英文名往往比中文长得多，格子里放不下的平时只显示开头，鼠标停上去才**慢慢地往左滚**，滚完一整轮从头再来，鼠标一挪开就重新开始。括注那几条也一起滚。
+翻页按钮「◀ ▶」左边有一枚小小的**「中 / EN」**（界面是英语时反过来显示「EN / 中」）：按一下，格子里的名字在母语和英文之间来回切，只是看着换，选中的还是同一条；英文名为空的那几条退回显示母语。英文名往往比中文长得多，格子里放不下的平时只显示开头，鼠标停上去才**慢慢地往左滚**，滚完一整轮从头再来，鼠标一挪开就重新开始。括注那几条也一起滚。
 
 ### 导出地图
 
@@ -98,6 +103,7 @@
 
 编辑器面板里的「设置」：
 
+- **界面**：显示语言（本体：简体中文 / English；装翻译模组后另有「跟随系统」及其它语言）
 - **显示**：世界地图上显示区划 / 小地图上显示区划 / 显示第几级 / 显示区划名称 / 地名允许超出的宽度（滑条，−12 ~ +12）/ 名称格式 / 填充区划内部 / 填充不透明度 / 智能降低填充精度 / 智能降低边框精度 / 启用平方千格 / 启用序号标记 / 注释位置
 - **自动外框**：边框样式（实线 / 虚线 / 点划线）/ 边框粗细
 - **导出地图**：导出时包含区划
@@ -106,6 +112,20 @@
 「填充不透明度」默认 50%，加减按钮一次走 5%。
 
 **「启用平方千格」**默认关。打开之后，面积超过 100 万平方格的区划改按**平方千格**显示、保留三位小数（`1234.567 平方千格`），不到这个数的照旧按平方格显示。树状图里的面积和编辑面板上的「选区 N」都跟着这条走。
+
+### 界面语言
+
+设置里「界面 → 显示语言」，切换即时生效、不用重开游戏。本体只带简体中文和英文，所以这一项只有两种选择：系统语言是中文就落「简体中文」，其它一律「English」——只装本体时不会出现「跟随系统」，因为两种语言都能直接点名。想用更多语言，装一个 **Province Translation**（`ProvinceTranslation-0.2.4.0.jar`）。
+
+装了翻译模组之后，语言列表里会多出一项**「跟随系统」**，也才能选到它带来的繁體中文、Français、Русский、Español、日本語、한국어。系统语言能对上一种有文案的语言，这一项就显示「跟随系统」；对不上（比如德语、葡萄牙语）就显示「English (Default)」，不给你一个名字对不上的空选项。
+
+翻译模组是个不含代码的模组，`mods` 里跟本体放一起就行，一份配所有 Minecraft 版本；卸掉它就回到本体那两种语言。没装翻译模组时，语言行左边有个小小的 **?**：鼠标停上去或者点一下，会用中英双语告诉你去哪里下载。
+
+游戏语言的归并规则：文言文（`lzh`）按繁体中文算——典籍本来就是繁体；繁体（`zh_tw` / `zh_hk` / `zh_mo` / `zh_hant`）共用一套；简体以及中文的其它变体归简体；英语变体（`en_us` / `en_gb`）、西班牙语变体（`es_es` / `es_mx`）各自归到英语、西语；其它语言（德语、葡萄牙语……）在只装本体时按「系统语言是不是中文」落到简体中文或 English。
+
+界面语言和区划里的两栏名字是分开的：**「名称格式」选「母语 + 级别名」时，级别名跟着界面语言取**——中文界面是「静冈县」，英语界面是「Shizuoka Prefecture」，法语界面也是英文的 Prefecture（级别名目前只有中英两套），不会出现「Paris省」这种半截拼接。
+
+英文普遍比中文长，按钮和设置项写不下时不会硬挤：平时只显示开头，鼠标停上去才慢慢往左滚（停 0.6 秒后开始，30 像素/秒），挪开重新从头算。
 
 ### 地名怎么摆
 
@@ -136,15 +156,16 @@
 
 分开是有道理的：填充的开销随**面积**涨，边框的开销随**轮廓长度**涨，想省的东西根本不是一回事。一笔画得很大但形状简单，只该关填充那个；一块轮廓碎得像海岸线但面积不大的区划，只该关边框那个。默认关着是因为精确档看着最舒服；卡了再打开，两个可以单独开。
 
-**0.2.3 起，任开一个就会连边界一起吸附到粗网格上。** 以前只隔行、只并短边，缩小时照样得把几十万条一格一格的台阶全投影一遍；现在按缩放把边界往里吸，边数随网格变粗成倍往下掉。三档，门限是「这一级网格在屏幕上还剩几个像素」：
+**0.2.3 起，任开一个就会连边界一起吸附到粗网格上。** 以前只隔行、只并短边，缩小时照样得把几十万条一格一格的台阶全投影一遍；现在按缩放把边界往里吸，边数随网格变粗成倍往下掉。四档，门限是「这一级网格在屏幕上还剩几个像素」：
 
 | 每方块屏幕像素 | 吸附到 | 什么时候会看到 |
 |---|---|---|
-| ≥ 0.5 | 单格（不吸附） | 正常看，边界精确贴着方块 |
+| ≥ 1.0 | 单格（不吸附） | 正常看，边界精确贴着方块 |
 | ≥ 0.125 | 4×4 方块 | 已经看不出单格边界 |
-| 更小 | 一个区块（16×16） | 一格不到八分之一像素，只剩区块轮廓 |
+| ≥ 0.03 | 一个区块（16×16） | 一个方块只剩零点零几像素，只剩区块轮廓 |
+| 更小 | 4×4 区块（64×64） | 一个方块不足 0.03 像素，三十多格挤进一像素 |
 
-区块是最粗的一档，不再往下并到 4×4 区块——那一步只剩轮廓，没有意义。门限压到了 0.2.3 最初值的一半（1 → 0.5、0.25 → 0.125）：吸附会丢精度，能看清的时候就别动它。
+0.2.4 把两档门限各压低了一半左右：16→64 从 0.0625 压到 0.03，4×4 从 0.25 压到 0.125——吸附会丢精度，能多看一档就多看一眼。
 
 - **填充**：扫描线看情况隔行。轮廓边数越多、图缩得越小，行距拉得越开。色块照样连成一片，小比例尺下边缘略糙一点。
 - **边框**：把屏幕上短到看不见的边（不足 0.35 像素的那些）并进前一条，省掉采不出来的笔。一块放大到满屏的区划，边界上一半以上的线段都比这还短。
@@ -224,9 +245,9 @@
 
 ### 世界地图叠层
 
-`client/ProvinceMapHook` 挂在 Xaero 的世界地图上，把区划按当前地图投影画成色块和边框；同时每帧记一份相机快照，导出时用按下按钮那一帧的视角。
+0.2.2 起不再往 Xaero 的世界地图里注入了。`GuiMap.render` 有五千多条指令，模组加载器自带的字节码改写器一写回就超限（`Too many operations`），所以现在一个字节都不碰它：用 Fabric 的 `ScreenEvents.AFTER_INIT` 认出 `xaero.map.gui.GuiMap`，再挂一个 `afterForeground`，每帧等它画完叠一层。相机位置和缩放是反射读出来的（`cameraX` / `cameraZ` / `scale` / `screenScale`），同时留一份快照给导出用。
 
-这里**没有走 Mixin**，不是偷懒：`xaero.map.gui.GuiMap` 的 `render` 有五千多条指令，Mixin 只要碰了这个类，就会给它整个类重算栈帧，而 1.20.1 / 1.21.1 环境里那套 ASM 会直接抛 `LimitExceededException: Too many operations`，游戏连主界面都进不去（`@Accessor` 一样炸）。所以换成完全不碰 Xaero：用 Fabric 的 `ScreenEvents.AFTER_INIT` 认出地图界面（按类名沿继承链比对，不直接引用类），`ScreenEvents.afterRender` 上叠层，键盘和鼠标各由一个注入到原版 `KeyboardHandler.keyPress` / `MouseHandler.onPress` 的入口转进来，相机参数靠反射读 `cameraX` / `cameraZ` / `scale` / `screenScale`。两点容易踩：`afterRender` 跑在 `Screen.renderWithTooltip` 之后，那一帧 GUI 的顶点早就提交了，新画的必须自己 `graphics.flush()` 才会上屏；还有 `AFTER_INIT` 每次 `init` 都会触发，**不能判重**——从树状图 `setScreen` 回到地图时 GuiMap 会再走一遍 `init`，per-screen 的事件活不过那一趟往返，判重会让图层从此再也不出现。
+叠层只在屏幕初始化时挂一次——从区划树这类子界面退回来时 Xaero 会重新 init，所以每次 init 都要重挂，挂的是这一个屏幕实例。
 
 `client/render/ProvinceRenderer` 负责真正的绘制：填充走扫描线，边框走沿边细分。这是帧率花得最狠的地方，所以：
 
@@ -283,19 +304,19 @@ translateY = pc * offx * zoom + ps * offz * zoom
 
 ### 改代码时的几个坑
 
-这份是从 26.2 版移植过来的，1.21.1 上有些 API 跟 26.2 不一样，踩过一次记在这里：
+这一节讲的是 26.x 线。所有版本线共用同一套逻辑，只有绘制 API 分两套：26.x 是 `GuiGraphicsExtractor`（`text` / `centeredText` / `outline`，绘制分成「记录」和「渲染」两段，帧末统一提交），1.20.x 和 1.21.x 是 `GuiGraphics`（`drawString` / `drawCenteredString` / `renderOutline`，调用时直接画）。改界面代码前先确认自己开的是哪个 port。
 
-- **按键分类的 lang 键是复数**：`key.categories.mc-province.main`。26.2 改成了单数 `key.category.…`，还换成 `KeyMapping.Category` 对象；1.21.1 的 `KeyMapping` 构造函数要的还是分类键字符串，写错了界面上会直接显示原始键名。
-- **键位注册走的是老包**：`net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(...)`。26.x 的 fabric-api 换成了 `keymapping.v1.KeyMappingHelper.registerKeyMapping(...)`，包名和方法名都不一样。
-- **`Minecraft` 上拿当前界面是字段 `screen`**，没有 26.x 的 `gui.screen()`；弹标题 / 副标题走 `Minecraft.gui.setTitle / setSubtitle / setTimes`，而不是 26.x 拆出来的 `gui.hud.*`。
-- **修饰键直接问 GLFW**：`InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_LSHIFT)`，左右 Shift 各判一次（1.21.1 的原版 `Screen.hasShiftDown()` 其实还在，这里跟 26.2 那份代码保持一致）。
-- **`ResourceKey` 取标识用 `location()`**，26.2 才改成 `identifier()`；这边也没有 `net.minecraft.resources.Identifier` 这个类。
-- **`CompoundTag` 没有 `getIntOr / getStringOr / getBooleanOr / getListOrEmpty` 那一族**（26.2 才有）。1.21.1 只有 `contains(key, type)` 加裸取值，这套语义由 `data/NbtCompat` 补齐，调用点写法保持不变。
-- **往 NBT 里存一组 int**：沿用它处一样的逗号分隔 `String`（`collapsed` 就是这么存的），不用 `getIntArrayOr`——1.21.1 上没有这个方法。
-- **Xaero 的第三方 jar 必须用 `modCompileOnly files(...)`**，不能写 `compileOnly files(...)`：1.x 线的模组 jar 里存的是 intermediary 名（`net.minecraft.class_2378` 之类），`compileOnly` 不过 loom 的 remapper，javac 会报「无法访问 class_2378」。
-- **1.21.1 线的 Xaero 小地图（26.6.0）没有 `MinimapElementGraphics`**：元素绘制直接用原版 `GuiGraphics`，而且它是 `MinimapElementRendererHandler.render(...)` 的第一个参数，不是字段。
+下面这些是 26.2 上踩过的：
+
+- **按键分类的 lang 键是单数**：`key.category.mc-province.main`。写成复数 `key.categories.…` 是 1.21 以前 `KeyMapping` 构造函数的写法，26.2 只认单数，写错了界面上会直接显示原始键名。
+- **`Screen` 上没有 `hasShiftDown()` 了**。要判断修饰键就直接问 GLFW：`InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_LSHIFT)`，左右 Shift 各判一次。
+- **`ResourceKey` 取标识用 `identifier()`**，不再是 `location()`。
+- **`EditSession.onRelease()` 是无参的**，早期版本带一个坐标参数。
+- **`VectorShape` 自带 `contains(double, double)`**，判断点是否落在形状里不用先取 `Area`。
+- **`CompoundTag` 没有 `getIntArrayOr(String, int[])`**。要往 NBT 里存一组 int，用逗号分隔的 `String` 最省事（`collapsed` 就是这么存的）。
 - **改版本号后要删 `build/resources`**，否则 `processResources` 的 expand 不重跑，产物名和 `fabric.mod.json` 里的版本会悄悄对不上。
 - **别用 `Get-Process java | Stop-Process -Force` 收尾**。Gradle 守护进程也是 java，一起杀掉之后下一次构建要重新起，特别慢。只杀命令行里带 `devlaunch` 的那几个游戏进程。
+- **`mouseScrolled` 的参数个数按线不同**：1.20.1 是三个（`mouseX, mouseY, scrollY`），1.20.2 起多一个横向滚动量变成四个。少写一个会报「方法不会覆盖或实现超类型的方法」，编译器会把两种签名都念给你看。
 
 ### 自检
 
@@ -324,7 +345,7 @@ gradlew.bat build
 ./gradlew build
 ```
 
-产物是 `build/libs/Province-0.2.3+1.21.1.jar`。
+产物是 `build/libs/Province-0.2.4+1.21.1.jar`。
 
 版本号与 MC 版本都在 `gradle.properties` 里：`mod_version` 是模组自己的版本，`minecraft_version` 是适配的游戏版本，`build.gradle` 只负责把它们拼成 `Province-<mod_version>+<minecraft_version>.jar`。要出别的游戏版本的构建，改 `minecraft_version`（以及 `fabric_api_version` 那条对应的线）重编即可，产物名会自动跟着变。
 
@@ -340,12 +361,12 @@ src/main/java/com/mcprovince/
   client/                    快捷键、编辑状态、设置、导出、像素字
   client/gui/                区划树、命名、新增级别名、设置四个界面，外加共用的 Ui 与 ScrollViewport
   client/render/             世界地图叠层、小地图叠层、绘制器、投影
-  mixin/                     小地图元素与键鼠入口的注入点（世界地图刻意不碰 Mixin）
+  mixin/                     小地图的注入点，以及键盘鼠标的原始输入钩子
 src/main/resources/
   fabric.mod.json
   mc-province.mixins.json
   mc-province.minimap.mixins.json
   assets/mc-province/
     icon.png                 模组图标（模组菜单里显示的那一张）
-    lang/                    中英文按键与提示文案
+    lang/                    本体文案：简体中文（zh_cn.json）与英文（en_us.json）；其余语言在 Province Translation 里
 ```
