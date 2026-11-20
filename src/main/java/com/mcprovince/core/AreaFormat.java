@@ -27,8 +27,8 @@ public final class AreaFormat {
     public static String format(double area, boolean useKilo) {
         if (useKilo && area > KILO_THRESHOLD) {
             // 固定 Locale：某些语言下 "%.3f" 的小数点是逗号，界面上会变成 1,234。
-            return String.format(Locale.ROOT, "%.3f 平方千格", area / PER_KILO);
+            return Lang.t("province.area.kilo", String.format(Locale.ROOT, "%.3f", area / PER_KILO));
         }
-        return Math.round(area) + " 平方格";
+        return Lang.t("province.area.blocks", Math.round(area));
     }
 }

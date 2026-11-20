@@ -1,22 +1,22 @@
 package com.mcprovince.core;
 
 /**
- * 区划名字的显示格式。「重庆市 / Chongqing City / 重庆 / Chongqing」四种。
+ * 区划名字的显示格式。「母语名 + 级别名 / 英文名 + 级别名 / 只有母语名 / 只有英文名」四种。
+ *
+ * <p>0.2.3 之前这两栏叫「中文名」「英文名」。现在界面语言可以单独切，非中文玩家也会往
+ * 第一栏填自己的母语，所以显示名改成「母语 / 英语」，存的键（{@code zh_full} 等）保持不变，
+ * 老存档里的设置照样能读。</p>
  */
 public enum NameFormat {
-    ZH_FULL("zh_full", "中文全称", "中文名 + 级别名"),
-    EN_FULL("en_full", "英文全称", "英文名 + 级别名"),
-    ZH_ONLY("zh_only", "仅中文名", "只显示中文名"),
-    EN_ONLY("en_only", "仅英文名", "只显示英文名");
+    ZH_FULL("zh_full"),
+    EN_FULL("en_full"),
+    ZH_ONLY("zh_only"),
+    EN_ONLY("en_only");
 
     private final String key;
-    private final String label;
-    private final String description;
 
-    NameFormat(String key, String label, String description) {
+    NameFormat(String key) {
         this.key = key;
-        this.label = label;
-        this.description = description;
     }
 
     public String key() {
@@ -24,11 +24,11 @@ public enum NameFormat {
     }
 
     public String label() {
-        return this.label;
+        return Lang.t("province.name_format." + this.key);
     }
 
     public String description() {
-        return this.description;
+        return Lang.t("province.name_format." + this.key + ".desc");
     }
 
     public static NameFormat byKey(String key) {
@@ -44,14 +44,24 @@ public enum NameFormat {
 
     /** 按本格式拼出一个区划的显示名。 */
     public String format(Province province) {
-        String zh = province.nameZh();
+        String nativeName = province.nameZh();
         String en = province.nameEn();
         return switch (this) {
-            case ZH_FULL -> concat(zh, AdminLevels.zh(province.levelKey()));
+            case ZH_FULL -> concat(nativeName, nativeSuffix(province.levelKey()));
             case EN_FULL -> concatSpaced(en, AdminLevels.en(province.levelKey()));
-            case ZH_ONLY -> zh;
+            case ZH_ONLY -> nativeName;
             case EN_ONLY -> en;
         };
+    }
+
+    /**
+     * 母语那套后缀：界面切到哪种语言，后缀就用那种语言的级别名。
+     *
+     * <p>「（县级）市」这类括号限定语落到地图上会被 {@link #visibleSuffix(String)}
+     * 剪掉，只留通名。</p>
+     */
+    private static String nativeSuffix(String levelKey) {
+        return AdminLevels.plainLabel(AdminLevels.byKey(levelKey));
     }
 
     /**
@@ -81,7 +91,12 @@ public enum NameFormat {
         if (name.isEmpty()) {
             return suffix;
         }
-        return name + suffix;
+        // 中日韩的级别名直接贴在地名后面；拉丁／西里尔／希腊字母那一侧是一个词，中间得留空格。
+        boolean cjk = switch (Lang.current()) {
+            case ZH_CN, ZH_TW, JA_JP, KO_KR -> true;
+            default -> false;
+        };
+        return cjk ? name + suffix : name + " " + suffix;
     }
 
     private static String concatSpaced(String name, String suffix) {

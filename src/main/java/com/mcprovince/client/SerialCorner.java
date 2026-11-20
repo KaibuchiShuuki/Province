@@ -1,5 +1,7 @@
 package com.mcprovince.client;
 
+import com.mcprovince.core.Lang;
+
 /**
  * 序号注释贴在屏幕的哪个角。
  *
@@ -8,19 +10,13 @@ package com.mcprovince.client;
  */
 public enum SerialCorner {
 
-    TOP_LEFT("左上"),
-    TOP_RIGHT("右上"),
-    BOTTOM_LEFT("左下"),
-    BOTTOM_RIGHT("右下");
-
-    private final String label;
-
-    SerialCorner(String label) {
-        this.label = label;
-    }
+    TOP_LEFT,
+    TOP_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_RIGHT;
 
     public String label() {
-        return this.label;
+        return Lang.t("province.serial_corner." + this.name());
     }
 
     /** 循环移位：设置界面上的 - / + 就是这么翻的。 */

@@ -1,5 +1,7 @@
 package com.mcprovince.client.gui;
 
+import com.mcprovince.core.Lang;
+
 import com.mcprovince.client.MapExporter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -48,7 +50,7 @@ public class ProvinceExportRangeScreen extends Screen {
     private int fieldW;
 
     public ProvinceExportRangeScreen(Screen parent) {
-        super(Component.literal("方块政区 · 导出指定范围"));
+        super(Component.literal(Lang.t("province.range.title")));
         this.parent = parent;
     }
 
@@ -86,16 +88,27 @@ public class ProvinceExportRangeScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics graphics) {
         graphics.fill(0, 0, this.width, this.height, 0xB0000000);
+    }
+
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        super.render(graphics, mouseX, mouseY, partialTick);
+
         graphics.fill(this.panelLeft - PANEL_PAD, PANEL_TOP,
                 this.panelLeft + this.panelW + PANEL_PAD, PANEL_BOTTOM, COL_PANEL);
         graphics.renderOutline(this.panelLeft - PANEL_PAD, PANEL_TOP,
                 this.panelW + PANEL_PAD * 2, PANEL_BOTTOM - PANEL_TOP, COL_EDGE);
 
-        graphics.drawCenteredString(this.font, "导出指定范围地图", this.width / 2, PANEL_TOP + 12, COL_TEXT);
-        graphics.drawCenteredString(this.font, "方块坐标，含端点；X 向东、Z 向南，可以是负数",
-                this.width / 2, PANEL_TOP + 26, COL_MUTED);
+        int headW = this.panelW + PANEL_PAD * 2;
+        int headX = this.panelLeft - PANEL_PAD;
+        String header = Lang.t("province.range.header");
+        Ui.scrollingText(graphics, this.font, "range:header", header, mouseX, mouseY,
+                headX, PANEL_TOP + 12, headW, 10, COL_TEXT, true);
+        String subtitle = Lang.t("province.range.subtitle");
+        Ui.scrollingText(graphics, this.font, "range:subtitle", subtitle, mouseX, mouseY,
+                headX, PANEL_TOP + 26, headW, 10, COL_MUTED, true);
 
         int x1 = this.panelLeft;
         int x2 = this.panelLeft + this.panelW - this.fieldW;
@@ -105,21 +118,20 @@ public class ProvinceExportRangeScreen extends Screen {
         graphics.drawString(this.font, "X2", x2, labelTop1, COL_TEXT);
         graphics.drawString(this.font, "Z1", x1, labelTop2, COL_TEXT);
         graphics.drawString(this.font, "Z2", x2, labelTop2, COL_TEXT);
-
-        super.render(graphics, mouseX, mouseY, partialTick);
         Ui.boxValue(graphics, this.font, this.x1Box);
         Ui.boxValue(graphics, this.font, this.x2Box);
         Ui.boxValue(graphics, this.font, this.z1Box);
         Ui.boxValue(graphics, this.font, this.z2Box);
 
-        Ui.button(graphics, this.font, mouseX, mouseY, okX(), BUTTON_Y, BUTTON_W, BUTTON_H, "导出", false);
-        Ui.button(graphics, this.font, mouseX, mouseY, cancelX(), BUTTON_Y, BUTTON_W, BUTTON_H, "取消", false);
+        Ui.button(graphics, this.font, mouseX, mouseY, okX(), BUTTON_Y, BUTTON_W, BUTTON_H, Lang.t("province.gui.export"), false);
+        Ui.button(graphics, this.font, mouseX, mouseY, cancelX(), BUTTON_Y, BUTTON_W, BUTTON_H, Lang.t("province.gui.cancel"), false);
 
         String foot = this.hint.isEmpty()
-                ? "单边最多 " + MapExporter.MAX_RANGE_BLOCKS + " 格；Enter 确认，Esc 取消。"
+                ? Lang.t("province.range.limit_hint", MapExporter.MAX_RANGE_BLOCKS)
                 : this.hint;
-        graphics.drawCenteredString(this.font, foot, this.width / 2, BUTTON_Y + BUTTON_H + 8,
-                this.hint.isEmpty() ? COL_MUTED : COL_HINT);
+        Ui.scrollingText(graphics, this.font, "range:foot:" + foot, foot, mouseX, mouseY,
+                10, BUTTON_Y + BUTTON_H + 8, this.width - 20, 10,
+                this.hint.isEmpty() ? COL_MUTED : COL_HINT, true);
     }
 
     private int okX() {
@@ -166,7 +178,7 @@ public class ProvinceExportRangeScreen extends Screen {
             z1 = Integer.parseInt(this.z1Box.getValue().trim());
             z2 = Integer.parseInt(this.z2Box.getValue().trim());
         } catch (NumberFormatException e) {
-            this.hint = "四个框都要填整数坐标（方块坐标，可以是负数）。";
+            this.hint = Lang.t("province.range.bad_number");
             return;
         }
         // 写反了不是错：小的当前面、大的当后面，直接换过来。
@@ -177,12 +189,11 @@ public class ProvinceExportRangeScreen extends Screen {
         long width = (long) maxX - minX + 1;
         long height = (long) maxZ - minZ + 1;
         if (width <= 0 || height <= 0) {
-            this.hint = "范围无效：X1/X2 或 Z1/Z2 解析后没有可用格数。";
+            this.hint = Lang.t("province.range.invalid");
             return;
         }
         if (width > MapExporter.MAX_RANGE_BLOCKS || height > MapExporter.MAX_RANGE_BLOCKS) {
-            this.hint = "范围太大：单边最多 " + MapExporter.MAX_RANGE_BLOCKS + " 格（"
-                    + width + " × " + height + "）。";
+            this.hint = Lang.t("province.range.too_large", MapExporter.MAX_RANGE_BLOCKS, width, height);
             return;
         }
         MapExporter.requestExport(MapExporter.ExportMode.RANGE, minX, minZ, maxX, maxZ);

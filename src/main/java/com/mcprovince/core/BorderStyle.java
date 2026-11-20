@@ -3,17 +3,15 @@ package com.mcprovince.core;
 /** 查看地图时给区划自动描的那一圈外框怎么画。 */
 public enum BorderStyle {
 
-    OFF("off", "不显示"),
-    LINE("line", "实线"),
-    DASH("dash", "虚线"),
-    DASH_DOT("dash_dot", "点划线");
+    OFF("off"),
+    LINE("line"),
+    DASH("dash"),
+    DASH_DOT("dash_dot");
 
     private final String key;
-    private final String label;
 
-    BorderStyle(String key, String label) {
+    BorderStyle(String key) {
         this.key = key;
-        this.label = label;
     }
 
     public String key() {
@@ -21,7 +19,7 @@ public enum BorderStyle {
     }
 
     public String label() {
-        return this.label;
+        return Lang.t("province.border_style." + this.key);
     }
 
     public static BorderStyle byKey(String key) {

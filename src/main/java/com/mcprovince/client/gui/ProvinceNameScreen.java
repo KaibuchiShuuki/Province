@@ -2,6 +2,7 @@ package com.mcprovince.client.gui;
 
 import com.mcprovince.client.ProvinceEditor;
 import com.mcprovince.core.AdminLevels;
+import com.mcprovince.core.Lang;
 import com.mcprovince.core.Province;
 import java.util.List;
 import net.minecraft.client.Minecraft;
@@ -57,13 +58,15 @@ public class ProvinceNameScreen extends Screen {
     private int gridY;
     private int cellW;
     private int gridW;
+    /** 两个字段标签的左边界（和输入框同一行，贴在框左边）。 */
+    private int labelX;
 
     public ProvinceNameScreen(Screen parent) {
         this(parent, Province.NO_PARENT);
     }
 
     public ProvinceNameScreen(Screen parent, int targetId) {
-        super(Component.literal("方块政区 · 命名"));
+        super(Component.literal(Lang.t("province.name.title")));
         this.parent = parent;
         this.targetId = targetId;
         Province target = targetOf();
@@ -102,8 +105,15 @@ public class ProvinceNameScreen extends Screen {
         String zh = target == null ? ProvinceEditor.newNameZh() : target.nameZh();
         String en = target == null ? ProvinceEditor.newNameEn() : target.nameEn();
 
-        int boxW = Math.min(240, this.width - 40);
-        int boxX = (this.width - boxW) / 2;
+        // 标签和输入框同一行：标签宽度按这语言自己的两个字算，框宽跟着留够，两个框一样长。
+        String nativeLabel = Lang.t("province.name.native");
+        String englishLabel = Lang.t("province.name.english");
+        int labelW = Math.max(this.font.width(nativeLabel), this.font.width(englishLabel));
+        int gap = 8;
+        int boxW = Math.max(80, Math.min(240, this.width - 40 - labelW - gap));
+        int totalW = labelW + gap + boxW;
+        this.labelX = (this.width - totalW) / 2;
+        int boxX = this.labelX + labelW + gap;
         this.zhBox = new EditBox(this.font, boxX, 36, boxW, 18, Component.empty());
         Ui.takeOverText(this.zhBox);
         this.zhBox.setValue(zh);
@@ -164,14 +174,9 @@ public class ProvinceNameScreen extends Screen {
         return Math.max(1, (levels().size() + 1 + PER_PAGE - 1) / PER_PAGE);
     }
 
-    /** 级别格子里显示的名字：切到英文时缺英文名就退回中文名，免得格子空着。 */
+    /** 级别格子里显示的名字：切到英文写法则用英文名，缺英文名就用占位，免得格子空着。 */
     private String levelLabel(AdminLevels.Name name) {
-        if (!this.showEn) {
-            return AdminLevels.labelOf(name);
-        }
-        String en = name.en();
-        // 注释（「（日本）」这类）只在界面上跟着名字走，地图上的地名不带它。
-        return en == null || en.isEmpty() ? AdminLevels.labelOf(name) : en + AdminLevels.noteSuffix(name);
+        return this.showEn ? AdminLevels.labelEn(name) : AdminLevels.labelOf(name);
     }
 
     /**
@@ -218,6 +223,11 @@ public class ProvinceNameScreen extends Screen {
         return groupX - 4 - TOOL_W;
     }
 
+    /** 「中 / EN」那枚小按钮上的字：点了会切到哪种写法。当前语言是英语时两边内容一样，按钮就没效果。 */
+    private String toggleLabel() {
+        return this.showEn ? Lang.current().shortLabel() : "EN";
+    }
+
     /** 当前选中的那个级别名能不能删——只有自己加的能删。 */
     private boolean canDelete() {
         return AdminLevels.isUser(this.levelKey);
@@ -259,15 +269,19 @@ public class ProvinceNameScreen extends Screen {
         graphics.fill(this.gridX - 8, panelTop, this.gridX + this.gridW + 8, panelBottom, COL_PANEL);
         graphics.renderOutline(this.gridX - 8, panelTop, this.gridW + 16, panelBottom - panelTop, COL_EDGE);
 
-        graphics.drawCenteredString(this.font, title(), this.width / 2, 14, COL_TEXT);
-        graphics.drawString(this.font, "中文名", (this.width - Math.min(240, this.width - 40)) / 2 - 52, 41, COL_TEXT);
-        graphics.drawString(this.font, "英文名", (this.width - Math.min(240, this.width - 40)) / 2 - 52, 65, COL_TEXT);
+        int titleW = this.gridW + 16;
+        Ui.scrollingText(graphics, this.font, "title:" + title(), title(), mouseX, mouseY,
+                (this.width - titleW) / 2, 8, titleW, 12, COL_TEXT, true);
+        // 标签和输入框同一行：标签宽度按这语言自己的字量过，框宽跟着让出来，不会叠上去。
+        graphics.drawString(this.font, Lang.t("province.name.native"), this.labelX, this.zhBox.getY() + 5, COL_TEXT);
+        graphics.drawString(this.font, Lang.t("province.name.english"), this.labelX, this.enBox.getY() + 5, COL_TEXT);
         Ui.boxValue(graphics, this.font, this.zhBox);
         Ui.boxValue(graphics, this.font, this.enBox);
 
         AdminLevels.Name current = AdminLevels.byKey(this.levelKey);
-        String currentLabel = AdminLevels.labelOf(current);
-        graphics.drawCenteredString(this.font, "级别：" + currentLabel, this.width / 2, this.gridY - 14, COL_TEXT);
+        String levelLine = Lang.t("province.name.level", AdminLevels.labelOf(current));
+        Ui.scrollingText(graphics, this.font, "level:" + levelLine, levelLine, mouseX, mouseY,
+                this.gridX, 88, this.gridW, 10, COL_TEXT, true);
 
         String rolling = null;
         for (int index = from; index < to; index++) {
@@ -279,7 +293,8 @@ public class ProvinceNameScreen extends Screen {
                 boolean hover = Ui.inside(mouseX, mouseY, cx, cy, this.cellW, CELL_H);
                 graphics.fill(cx, cy, cx + this.cellW, cy + CELL_H, hover ? Ui.BTN_HOVER : Ui.BTN);
                 graphics.renderOutline(cx, cy, this.cellW, CELL_H, COL_USER_EDGE);
-                graphics.drawString(this.font, "＋ 自定义…", cx + 4, cy + 5, COL_USER_EDGE);
+                Ui.scrollingText(graphics, this.font, "custom", Lang.t("province.name.custom"), mouseX, mouseY,
+                        cx + 2, cy + 1, this.cellW - 4, CELL_H - 2, COL_USER_EDGE, false);
                 continue;
             }
             AdminLevels.Name name = all.get(index);
@@ -299,13 +314,13 @@ public class ProvinceNameScreen extends Screen {
         this.marqueeKey = rolling;
 
         int pageW = 18;
-        int labelW = this.font.width("第 8 / 8 页") + 20;
+        int labelW = this.font.width(Lang.t("province.name.page", 8, 8)) + 20;
         int groupW = pageW * 2 + labelW + 8;
         int groupX = this.width / 2 - groupW / 2;
         Ui.button(graphics, this.font, mouseX, mouseY, langX(groupX), footerY, TOOL_W, TOOL_H,
-                this.showEn ? "EN" : "中", false);
+                toggleLabel(), false);
         Ui.button(graphics, this.font, mouseX, mouseY, groupX, footerY, pageW, TOOL_H, "◀", false);
-        graphics.drawCenteredString(this.font, "第 " + (this.page + 1) + " / " + pageCount() + " 页",
+        graphics.drawCenteredString(this.font, Lang.t("province.name.page", this.page + 1, pageCount()),
                 groupX + pageW + labelW / 2 + 4, footerY + 4, COL_TEXT);
         Ui.button(graphics, this.font, mouseX, mouseY, groupX + pageW + labelW + 8, footerY, pageW, TOOL_H, "▶", false);
 
@@ -328,23 +343,21 @@ public class ProvinceNameScreen extends Screen {
         }
 
         int okW = 80;
-        Ui.button(graphics, this.font, mouseX, mouseY, this.width / 2 - okW - 4, buttonY, okW, 20, "确定", false);
-        Ui.button(graphics, this.font, mouseX, mouseY, this.width / 2 + 4, buttonY, okW, 20, "取消", false);
+        Ui.button(graphics, this.font, mouseX, mouseY, this.width / 2 - okW - 4, buttonY, okW, 20, Lang.t("province.gui.ok"), false);
+        Ui.button(graphics, this.font, mouseX, mouseY, this.width / 2 + 4, buttonY, okW, 20, Lang.t("province.gui.cancel"), false);
 
         String footNote = !this.hint.isEmpty() ? this.hint
-                : "「＋ 自定义…」加一条自己的级别名，- 删掉自己加的（金色边框那些）；「"
-                        + AdminLevels.NONE_LABEL + "」表示区划名后面不加任何称号。";
-        graphics.drawCenteredString(this.font, footNote, this.width / 2, buttonY + 26,
-                this.hint.isEmpty() ? COL_TEXT : 0xFFFF8080);
+                : Lang.t("province.name.foot", AdminLevels.noneLabel());
+        Ui.scrollingText(graphics, this.font, "foot:" + footNote, footNote, mouseX, mouseY,
+                10, buttonY + 26, this.width - 20, 10,
+                this.hint.isEmpty() ? COL_TEXT : 0xFFFF8080, true);
     }
 
     @Override
-    public boolean mouseClicked(double mx, double my, int button) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) {
-            return super.mouseClicked(mx, my, button);
+            return super.mouseClicked(mouseX, mouseY, button);
         }
-        double mouseX = mx;
-        double mouseY = my;
 
         List<AdminLevels.Name> all = levels();
         int from = this.page * PER_PAGE;
@@ -369,7 +382,7 @@ public class ProvinceNameScreen extends Screen {
         int buttonY = buttonY();
 
         int pageW = 18;
-        int labelW = this.font.width("第 8 / 8 页") + 20;
+        int labelW = this.font.width(Lang.t("province.name.page", 8, 8)) + 20;
         int groupW = pageW * 2 + labelW + 8;
         int groupX = this.width / 2 - groupW / 2;
         // 中 / EN：只切这一页显示的名字，不动任何数据。
@@ -400,10 +413,10 @@ public class ProvinceNameScreen extends Screen {
                 // 删的就是当前选中那个，那就退回默认，别让界面举着一个不存在的键。
                 this.levelKey = AdminLevels.DEFAULT_KEY;
                 this.page = Math.min(this.page, pageCount() - 1);
-                this.hint = "已删除「" + label + "」。用过它的区划会退回「"
-                        + AdminLevels.zh(AdminLevels.DEFAULT_KEY) + "」。";
+                this.hint = Lang.t("province.name.hint.deleted", label,
+                        AdminLevels.labelOf(AdminLevels.byKey(AdminLevels.DEFAULT_KEY)));
             } else {
-                this.hint = "内置的级别名不能删，只能删自己加的（金色边框那些）。";
+                this.hint = Lang.t("province.name.hint.builtin");
             }
             return true;
         }
@@ -430,7 +443,7 @@ public class ProvinceNameScreen extends Screen {
             return true;
         }
 
-        return super.mouseClicked(mx, my, button);
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -458,12 +471,12 @@ public class ProvinceNameScreen extends Screen {
     private String title() {
         Province target = targetOf();
         if (target == null) {
-            return "行政区划命名";
+            return Lang.t("province.name.header");
         }
         // 名字允许留空，空着的时候标题里总得有个字，不然只剩一个斜杠。
-        String zh = target.nameZh().isEmpty() ? "未命名" : target.nameZh();
-        String en = target.nameEn().isEmpty() ? "未命名" : target.nameEn();
-        return "设置：" + zh + " / " + en;
+        String zh = target.nameZh().isEmpty() ? Lang.t("province.name.unnamed") : target.nameZh();
+        String en = target.nameEn().isEmpty() ? Lang.t("province.name.unnamed") : target.nameEn();
+        return Lang.t("province.name.current", zh, en);
     }
 
     @Override

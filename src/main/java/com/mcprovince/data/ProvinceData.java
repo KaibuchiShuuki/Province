@@ -7,6 +7,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
@@ -106,8 +107,6 @@ public final class ProvinceData {
             return;
         }
         try {
-            // 1.20.1 的 NbtIo 只有 File 重载，没有 26.x 的 NbtAccounter 大小上限；
-            // 存档是本模组自己写的本地文件，这里按不限额读。
             CompoundTag tag = NbtIo.readCompressed(this.file.toFile());
             boolean legacy = ProvinceNbt.read(tag, this.store);
             LOGGER.info("载入 {} 个行政区划（{}）", this.store.size(), this.worldKey);
